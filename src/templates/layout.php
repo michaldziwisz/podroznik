@@ -27,6 +27,7 @@
           <nav class="ui-controls" aria-label="Nawigacja">
             <a class="btn small" href="/">Połączenia</a>
             <a class="btn small" href="/timetable">Rozkład z przystanku</a>
+            <a class="btn small" href="<?= \TyfloPodroznik\Html::url('/contact', ['back' => (string)($_SERVER['REQUEST_URI'] ?? '/')]) ?>">Zgłoś problem</a>
           </nav>
           <form class="ui-controls" method="post" action="/ui">
             <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">

@@ -16,3 +16,14 @@ Otwórz `http://127.0.0.1:8080/`.
 
 - To nie jest oficjalny produkt e‑podróżnik.pl i może przestać działać, jeśli zmienią endpointy lub format HTML.
 - Ta aplikacja nie implementuje zakupu biletów — skupia się na dostępnej wyszukiwarce i prezentacji wyników/szczegółów.
+
+## Zgłoszenia (Sygnalista)
+
+W aplikacji jest widok kontaktowy: `/contact`. Może wysyłać zgłoszenia do systemu „sygnalista” (Cloudflare Worker `POST /v1/report`), który tworzy issue na GitHub.
+
+Konfiguracja przez zmienne środowiskowe (np. `fastcgi_param` w nginx):
+
+- `SYGNALISTA_BASE_URL` (np. `https://sygnalista.<twoj-subdomain>.workers.dev`)
+- `SYGNALISTA_APP_ID` (np. `podroznik`)
+- opcjonalnie: `SYGNALISTA_APP_TOKEN` (jeśli w Workerze włączony `APP_TOKEN_MAP`)
+- opcjonalnie: `SYGNALISTA_APP_VERSION`, `SYGNALISTA_APP_BUILD`, `SYGNALISTA_APP_CHANNEL`

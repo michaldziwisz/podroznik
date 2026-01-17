@@ -36,6 +36,12 @@ final class App
                 case '/timetable/results':
                     $this->pageTimetableResults();
                     return;
+                case '/contact':
+                    $this->pageContact();
+                    return;
+                case '/contact/send':
+                    $this->handleContact();
+                    return;
                 case '/search':
                     $this->handleSearch();
                     return;
@@ -142,6 +148,47 @@ final class App
         ]));
     }
 
+    private function pageContact(): void
+    {
+        $defaults = [
+            'kind' => (string)($_GET['kind'] ?? ''),
+            'title' => (string)($_GET['title'] ?? ''),
+            'description' => (string)($_GET['description'] ?? ''),
+            'email' => (string)($_GET['email'] ?? ''),
+            'page' => (string)($_GET['page'] ?? ''),
+        ];
+
+        if ($defaults['kind'] === '') {
+            $defaults['kind'] = 'bug';
+        }
+        if (!in_array($defaults['kind'], ['bug', 'suggestion'], true)) {
+            $defaults['kind'] = 'bug';
+        }
+
+        if ($defaults['page'] === '') {
+            $ref = (string)($_GET['back'] ?? '');
+            if ($ref !== '' && !str_starts_with($ref, '/')) {
+                $ref = '';
+            }
+            if ($ref !== '') {
+                $defaults['page'] = $this->absoluteUrl($ref);
+            }
+        }
+
+        $lastSent = $_SESSION['last_contact_sent'] ?? null;
+        if (!is_array($lastSent)) {
+            $lastSent = null;
+        }
+        unset($_SESSION['last_contact_sent']);
+
+        $this->layout('Kontakt', $this->view->render('contact', [
+            'csrf' => Csrf::token(),
+            'defaults' => $defaults,
+            'errors' => [],
+            'sent' => $lastSent,
+        ]));
+    }
+
     private function handleUi(): void
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
@@ -158,6 +205,111 @@ final class App
             $back = '/';
         }
         UiPrefs::handlePost($action, $back);
+    }
+
+    private function handleContact(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->respondNotFound();
+            return;
+        }
+        if (!Csrf::validate($_POST['csrf'] ?? null)) {
+            $this->flash('Błędny token bezpieczeństwa (CSRF). Spróbuj ponownie.', 'error');
+            Html::redirect('/contact');
+        }
+
+        $kind = (string)($_POST['kind'] ?? 'bug');
+        $title = trim((string)($_POST['title'] ?? ''));
+        $description = trim((string)($_POST['description'] ?? ''));
+        $email = trim((string)($_POST['email'] ?? ''));
+        $page = trim((string)($_POST['page'] ?? ''));
+
+        $errors = [];
+        if (!in_array($kind, ['bug', 'suggestion'], true)) {
+            $errors['kind'] = 'Wybierz typ zgłoszenia.';
+            $kind = 'bug';
+        }
+        if ($title === '') {
+            $errors['title'] = 'Podaj tytuł.';
+        }
+        if ($description === '') {
+            $errors['description'] = 'Podaj opis zgłoszenia.';
+        }
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            $errors['email'] = 'Podaj prawidłowy adres e‑mail albo zostaw pole puste.';
+        }
+        if ($page !== '' && !preg_match('/^https?:\\/\\//i', $page)) {
+            $errors['page'] = 'Podaj pełny adres URL (zaczynający się od http:// lub https://) albo zostaw pole puste.';
+        }
+
+        $defaults = [
+            'kind' => $kind,
+            'title' => $title,
+            'description' => $description,
+            'email' => $email,
+            'page' => $page,
+        ];
+
+        if ($errors !== []) {
+            $this->layout('Kontakt', $this->view->render('contact', [
+                'csrf' => Csrf::token(),
+                'defaults' => $defaults,
+                'errors' => $errors,
+                'sent' => null,
+            ]));
+            return;
+        }
+
+        $client = SygnalistaClient::fromEnv();
+        if ($client === null) {
+            $this->flash('Formularz kontaktowy nie jest jeszcze skonfigurowany (brak ustawień sygnalisty).', 'error');
+            Html::redirect('/contact');
+        }
+
+        $diagnostics = [
+            'web' => array_filter([
+                'page' => $page !== '' ? $page : null,
+                'userAgent' => (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
+                'acceptLanguage' => (string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''),
+            ], static fn($v): bool => is_string($v) && $v !== ''),
+            'server' => [
+                'php' => PHP_VERSION,
+            ],
+        ];
+
+        $forwardedFor = $this->clientIpForSygnalista();
+
+        try {
+            $result = $client->sendReport(
+                kind: $kind,
+                title: $title,
+                description: $description,
+                email: $email !== '' ? $email : null,
+                diagnostics: $diagnostics,
+                forwardedFor: $forwardedFor,
+            );
+        } catch (\Throwable $e) {
+            $msg = trim($e->getMessage());
+            $msg = $msg !== '' ? $msg : 'Wystąpił nieoczekiwany błąd.';
+            $this->flash('Nie udało się wysłać zgłoszenia. ' . $msg, 'error');
+            $this->layout('Kontakt', $this->view->render('contact', [
+                'csrf' => Csrf::token(),
+                'defaults' => $defaults,
+                'errors' => [],
+                'sent' => null,
+            ]));
+            return;
+        }
+
+        $issueUrl = is_array($result) ? ($result['issue']['html_url'] ?? null) : null;
+        $reportId = is_array($result) ? ($result['reportId'] ?? null) : null;
+
+        $_SESSION['last_contact_sent'] = [
+            'issueUrl' => is_string($issueUrl) ? $issueUrl : '',
+            'reportId' => is_string($reportId) ? $reportId : '',
+        ];
+
+        Html::redirect('/contact');
     }
 
     private function handleTimetableSearch(): void
@@ -689,6 +841,25 @@ final class App
             return 0;
         }
         return ((int)$m[1] * 60) + (int)$m[2];
+    }
+
+    private function absoluteUrl(string $path): string
+    {
+        $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        if ($host === '') {
+            return $path;
+        }
+        return $scheme . '://' . $host . $path;
+    }
+
+    private function clientIpForSygnalista(): string
+    {
+        $ip = (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
+        if ($ip !== '') {
+            return $ip;
+        }
+        return (string)($_SERVER['REMOTE_ADDR'] ?? '');
     }
 
     private function readSearchParamsFromPost(): array
