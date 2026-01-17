@@ -14,7 +14,27 @@ final class App
 
     public function handle(): void
     {
-        $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+        $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+        $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
+
+        $method = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        if (
+            $path !== '/'
+            && str_ends_with($path, '/')
+            && in_array($method, ['GET', 'HEAD'], true)
+        ) {
+            $canonical = rtrim($path, '/');
+            if ($canonical === '') {
+                $canonical = '/';
+            }
+            $query = parse_url($requestUri, PHP_URL_QUERY);
+            if (is_string($query) && $query !== '') {
+                $canonical .= '?' . $query;
+            }
+            header('Location: ' . $canonical, true, 301);
+            return;
+        }
+
         if ($path !== '/') {
             $path = rtrim($path, '/');
             if ($path === '') {
@@ -291,6 +311,16 @@ final class App
         } catch (\Throwable $e) {
             $msg = trim($e->getMessage());
             $msg = $msg !== '' ? $msg : 'Wystąpił nieoczekiwany błąd.';
+            if (str_starts_with($msg, 'Unknown app.id:')) {
+                $appId = trim(substr($msg, strlen('Unknown app.id:')));
+                $msg = 'Sygnalista nie jest skonfigurowany dla tej aplikacji'
+                    . ($appId !== '' ? (' (app.id: ' . $appId . ')') : '')
+                    . '. Dodaj mapowanie w konfiguracji workera (`APP_REPO_MAP`) i wykonaj deploy.';
+            } elseif ($msg === 'Rate limit exceeded') {
+                $msg = 'Przekroczono limit zgłoszeń na minutę. Odczekaj chwilę i spróbuj ponownie.';
+            } elseif (str_contains($msg, 'Invalid x-sygnalista-app-token')) {
+                $msg = 'Nieprawidłowy token aplikacji (x-sygnalista-app-token). Sprawdź konfigurację po stronie sygnalisty oraz `SYGNALISTA_APP_TOKEN`.';
+            }
             $this->flash('Nie udało się wysłać zgłoszenia. ' . $msg, 'error');
             $this->layout('Kontakt', $this->view->render('contact', [
                 'csrf' => Csrf::token(),

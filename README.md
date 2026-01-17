@@ -21,6 +21,12 @@ Otwórz `http://127.0.0.1:8080/`.
 
 W aplikacji jest widok kontaktowy: `/contact`. Może wysyłać zgłoszenia do systemu „sygnalista” (Cloudflare Worker `POST /v1/report`), który tworzy issue na GitHub.
 
+Po stronie workera „sygnalista” musisz dodać mapowanie aplikacji do repo z issue (zmienna `APP_REPO_MAP`), np.:
+
+```json
+{ "podroznik": "michaldziwisz/podroznik" }
+```
+
 Konfiguracja przez zmienne środowiskowe (np. `fastcgi_param` w nginx):
 
 - `SYGNALISTA_BASE_URL` (np. `https://sygnalista.<twoj-subdomain>.workers.dev`)

@@ -17,31 +17,36 @@ final class SygnalistaClient
 
     public static function fromEnv(): ?self
     {
-        $baseUrl = trim((string)(getenv('SYGNALISTA_BASE_URL') ?: ''));
+        $env = static function (string $name): string {
+            $v = $_SERVER[$name] ?? getenv($name);
+            return is_string($v) ? $v : '';
+        };
+
+        $baseUrl = trim($env('SYGNALISTA_BASE_URL'));
         if ($baseUrl === '') {
             $baseUrl = 'https://sygnalista.michaldziwisz.workers.dev';
         }
         $baseUrl = rtrim($baseUrl, '/');
 
-        $appId = trim((string)(getenv('SYGNALISTA_APP_ID') ?: ''));
+        $appId = trim($env('SYGNALISTA_APP_ID'));
         if ($appId === '') {
             $appId = 'podroznik';
         }
 
-        $appToken = trim((string)(getenv('SYGNALISTA_APP_TOKEN') ?: ''));
+        $appToken = trim($env('SYGNALISTA_APP_TOKEN'));
         if ($appToken === '') {
             $appToken = null;
         }
 
-        $appVersion = trim((string)(getenv('SYGNALISTA_APP_VERSION') ?: ''));
+        $appVersion = trim($env('SYGNALISTA_APP_VERSION'));
         if ($appVersion === '') {
             $appVersion = null;
         }
-        $appBuild = trim((string)(getenv('SYGNALISTA_APP_BUILD') ?: ''));
+        $appBuild = trim($env('SYGNALISTA_APP_BUILD'));
         if ($appBuild === '') {
             $appBuild = null;
         }
-        $appChannel = trim((string)(getenv('SYGNALISTA_APP_CHANNEL') ?: ''));
+        $appChannel = trim($env('SYGNALISTA_APP_CHANNEL'));
         if ($appChannel === '') {
             $appChannel = null;
         }
@@ -153,4 +158,3 @@ final class SygnalistaClient
         return is_array($decoded) ? $decoded : [];
     }
 }
-
