@@ -1,0 +1,791 @@
+<?php
+declare(strict_types=1);
+
+namespace TyfloPodroznik;
+
+final class App
+{
+    private readonly View $view;
+
+    public function __construct()
+    {
+        $this->view = new View();
+    }
+
+    public function handle(): void
+    {
+        $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
+        if ($path !== '/') {
+            $path = rtrim($path, '/');
+            if ($path === '') {
+                $path = '/';
+            }
+        }
+
+        try {
+            switch ($path) {
+                case '/':
+                    $this->pageSearch();
+                    return;
+                case '/timetable':
+                    $this->pageTimetable();
+                    return;
+                case '/timetable/search':
+                    $this->handleTimetableSearch();
+                    return;
+                case '/timetable/results':
+                    $this->pageTimetableResults();
+                    return;
+                case '/search':
+                    $this->handleSearch();
+                    return;
+                case '/results':
+                    $this->pageResults();
+                    return;
+                case '/result':
+                    $this->pageResult();
+                    return;
+                case '/extend':
+                    $this->handleExtend();
+                    return;
+                case '/ui':
+                    $this->handleUi();
+                    return;
+                case '/health':
+                    header('Content-Type: text/plain; charset=utf-8');
+                    echo "ok\n";
+                    return;
+                default:
+                    $this->respondNotFound();
+                    return;
+            }
+        } catch (\Throwable $e) {
+            $this->respondError($e);
+        }
+    }
+
+    private function layout(string $title, string $contentHtml, array $extra = []): void
+    {
+        $ui = UiPrefs::fromCookies();
+        $flash = $_SESSION['flash'] ?? null;
+        unset($_SESSION['flash']);
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $this->view->render('layout', [
+            'title' => $title,
+            'contentHtml' => $contentHtml,
+            'ui' => $ui,
+            'csrf' => Csrf::token(),
+            'flash' => $flash,
+            ...$extra,
+        ]);
+    }
+
+    private function pageSearch(): void
+    {
+        $defaults = [
+            'from' => (string)($_GET['from'] ?? ''),
+            'to' => (string)($_GET['to'] ?? ''),
+            'date' => (string)($_GET['date'] ?? ''),
+            'time' => (string)($_GET['time'] ?? ''),
+        ];
+        if ($defaults['date'] === '') {
+            $defaults['date'] = (string)($_SESSION['last_search_form']['date'] ?? '');
+        }
+        if ($defaults['from'] === '') {
+            $defaults['from'] = (string)($_SESSION['last_search_form']['from'] ?? '');
+        }
+        if ($defaults['to'] === '') {
+            $defaults['to'] = (string)($_SESSION['last_search_form']['to'] ?? '');
+        }
+        if ($defaults['time'] === '') {
+            $defaults['time'] = (string)($_SESSION['last_search_form']['time'] ?? '');
+        }
+        $dateDefault = Input::normalizeDateYmd($defaults['date'] ?? '');
+        $defaults['date'] = $dateDefault ?? date('Y-m-d');
+
+        $timeDefault = Input::normalizeTimeHm($defaults['time'] ?? '');
+        $defaults['time'] = $timeDefault ?? '';
+        $this->layout('Wyszukiwarka połączeń', $this->view->render('search', [
+            'csrf' => Csrf::token(),
+            'defaults' => $defaults,
+        ]));
+    }
+
+    private function pageTimetable(): void
+    {
+        $defaults = [
+            'q' => (string)($_GET['q'] ?? ''),
+            'date' => (string)($_GET['date'] ?? ''),
+            'from_time' => (string)($_GET['from_time'] ?? ''),
+            'to_time' => (string)($_GET['to_time'] ?? ''),
+        ];
+
+        foreach (array_keys($defaults) as $k) {
+            if ($defaults[$k] === '') {
+                $defaults[$k] = (string)($_SESSION['last_timetable_form'][$k] ?? '');
+            }
+        }
+
+        $dateDefault = Input::normalizeDateYmd($defaults['date'] ?? '');
+        $defaults['date'] = $dateDefault ?? date('Y-m-d');
+
+        $fromDefault = Input::normalizeTimeHm($defaults['from_time'] ?? '');
+        $defaults['from_time'] = $fromDefault ?? '';
+
+        $toDefault = Input::normalizeTimeHm($defaults['to_time'] ?? '');
+        $defaults['to_time'] = $toDefault ?? '';
+
+        $this->layout('Rozkład jazdy z przystanku', $this->view->render('timetable', [
+            'csrf' => Csrf::token(),
+            'defaults' => $defaults,
+        ]));
+    }
+
+    private function handleUi(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->respondNotFound();
+            return;
+        }
+        if (!Csrf::validate($_POST['csrf'] ?? null)) {
+            $this->flash('Błędny token bezpieczeństwa (CSRF). Spróbuj ponownie.', 'error');
+            Html::redirect('/');
+        }
+        $action = (string)($_POST['action'] ?? '');
+        $back = (string)($_POST['back'] ?? '/');
+        if ($back === '' || !str_starts_with($back, '/')) {
+            $back = '/';
+        }
+        UiPrefs::handlePost($action, $back);
+    }
+
+    private function handleTimetableSearch(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->respondNotFound();
+            return;
+        }
+        if (!Csrf::validate($_POST['csrf'] ?? null)) {
+            $this->flash('Błędny token bezpieczeństwa (CSRF). Spróbuj ponownie.', 'error');
+            Html::redirect('/timetable');
+        }
+
+        $stage = (string)($_POST['stage'] ?? 'initial');
+        $client = EpodroznikClient::fromSession();
+
+        if ($stage === 'select_stop') {
+            $pending = $_SESSION['pending_timetable'] ?? null;
+            $pendingSuggestions = $_SESSION['pending_timetable_suggestions'] ?? null;
+            unset($_SESSION['pending_timetable'], $_SESSION['pending_timetable_suggestions']);
+
+            if (!is_array($pending) || !is_array($pendingSuggestions)) {
+                $this->flash('Brak danych wyboru przystanku. Wykonaj wyszukiwanie ponownie.', 'error');
+                Html::redirect('/timetable');
+            }
+
+            $stopV = (string)($_POST['stopV'] ?? '');
+            $stopId = $this->stopIdFromPlaceDataString($stopV);
+            if ($stopId === null) {
+                $this->flash('Wybierz prawidłowy przystanek.', 'error');
+                $this->layout('Wybór przystanku', $this->view->render('timetable_select_stop', [
+                    'csrf' => Csrf::token(),
+                    'q' => (string)($pending['q'] ?? ''),
+                    'suggestions' => $pendingSuggestions,
+                    'filters' => [
+                        'date' => (string)($pending['date'] ?? ''),
+                        'from_time' => (string)($pending['from_time'] ?? ''),
+                        'to_time' => (string)($pending['to_time'] ?? ''),
+                    ],
+                ]));
+                return;
+            }
+
+            $_SESSION['last_timetable_form'] = [
+                'q' => (string)($pending['q'] ?? ''),
+                'date' => (string)($pending['date'] ?? ''),
+                'from_time' => (string)($pending['from_time'] ?? ''),
+                'to_time' => (string)($pending['to_time'] ?? ''),
+            ];
+
+            Html::redirect(Html::url('/timetable/results', [
+                'stopId' => $stopId,
+                'date' => (string)($pending['date'] ?? ''),
+                'from_time' => (string)($pending['from_time'] ?? ''),
+                'to_time' => (string)($pending['to_time'] ?? ''),
+            ]));
+        }
+
+        $params = $this->readTimetableParamsFromPost();
+        if ($params['q'] === '') {
+            $this->flash('Uzupełnij pole „Miasto / przystanek”.', 'error');
+            Html::redirect('/timetable');
+        }
+
+        $dateNorm = Input::normalizeDateYmd($params['date']);
+        if ($dateNorm === null) {
+            $this->flash('Podaj prawidłowy dzień.', 'error');
+            Html::redirect(Html::url('/timetable', [
+                'q' => $params['q'],
+                'date' => $params['date'],
+                'from_time' => $params['from_time'],
+                'to_time' => $params['to_time'],
+            ]));
+        }
+        $params['date'] = $dateNorm;
+
+        $fromTimeNorm = Input::normalizeTimeHm($params['from_time']) ?? '';
+        $toTimeNorm = Input::normalizeTimeHm($params['to_time']) ?? '';
+        $params['from_time'] = $fromTimeNorm;
+        $params['to_time'] = $toTimeNorm;
+
+        if ($fromTimeNorm !== '' && $toTimeNorm !== '' && $this->timeToMinutes($fromTimeNorm) > $this->timeToMinutes($toTimeNorm)) {
+            $this->flash('„Godzina od” nie może być późniejsza niż „Godzina do”.', 'error');
+            Html::redirect(Html::url('/timetable', [
+                'q' => $params['q'],
+                'date' => $params['date'],
+                'from_time' => $fromTimeNorm,
+                'to_time' => $toTimeNorm,
+            ]));
+        }
+
+        $resp = $client->suggest($params['q'], requestKind: 'SOURCE', type: 'STOPS');
+        $suggestions = $this->filterStopSuggestions($resp['suggestions'] ?? []);
+
+        if ($suggestions === []) {
+            $this->flash('Nie znaleziono przystanków dla podanej frazy. Spróbuj wpisać bardziej ogólną nazwę (np. miasto).', 'error');
+            Html::redirect(Html::url('/timetable', [
+                'q' => $params['q'],
+                'date' => $params['date'],
+                'from_time' => $params['from_time'],
+                'to_time' => $params['to_time'],
+            ]));
+        }
+
+        $pick = $this->pickSuggestion($params['q'], $suggestions);
+        if ($pick !== null) {
+            $stopId = $this->stopIdFromPlaceDataString((string)($pick['placeDataString'] ?? ''));
+            if ($stopId === null) {
+                $this->flash('Nie udało się odczytać identyfikatora przystanku z sugestii.', 'error');
+                Html::redirect(Html::url('/timetable', [
+                    'q' => $params['q'],
+                    'date' => $params['date'],
+                    'from_time' => $params['from_time'],
+                    'to_time' => $params['to_time'],
+                ]));
+            }
+
+            $_SESSION['last_timetable_form'] = [
+                'q' => $params['q'],
+                'date' => $params['date'],
+                'from_time' => $params['from_time'],
+                'to_time' => $params['to_time'],
+            ];
+
+            Html::redirect(Html::url('/timetable/results', [
+                'stopId' => $stopId,
+                'date' => $params['date'],
+                'from_time' => $params['from_time'],
+                'to_time' => $params['to_time'],
+            ]));
+        }
+
+        $_SESSION['pending_timetable'] = $params;
+        $_SESSION['pending_timetable_suggestions'] = $suggestions;
+
+        $this->layout('Wybór przystanku', $this->view->render('timetable_select_stop', [
+            'csrf' => Csrf::token(),
+            'q' => $params['q'],
+            'suggestions' => $suggestions,
+            'filters' => [
+                'date' => $params['date'],
+                'from_time' => $params['from_time'],
+                'to_time' => $params['to_time'],
+            ],
+        ]));
+    }
+
+    private function handleSearch(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->respondNotFound();
+            return;
+        }
+        if (!Csrf::validate($_POST['csrf'] ?? null)) {
+            $this->flash('Błędny token bezpieczeństwa (CSRF). Spróbuj ponownie.', 'error');
+            Html::redirect('/');
+        }
+
+        $stage = (string)($_POST['stage'] ?? 'initial');
+        $client = EpodroznikClient::fromSession();
+
+        if ($stage === 'select_places') {
+            $pending = $_SESSION['pending_search'] ?? null;
+            $pendingSuggestions = $_SESSION['pending_suggestions'] ?? null;
+            unset($_SESSION['pending_search'], $_SESSION['pending_suggestions']);
+
+            if (!is_array($pending) || !is_array($pendingSuggestions)) {
+                $this->flash('Brak danych wyboru miejsc. Wykonaj wyszukiwanie ponownie.', 'error');
+                Html::redirect('/');
+            }
+            $fromSug = (array)($pendingSuggestions['from'] ?? []);
+            $toSug = (array)($pendingSuggestions['to'] ?? []);
+            if ($fromSug === [] || $toSug === []) {
+                $this->flash('Nie znaleziono dopasowań dla jednego z pól. Spróbuj wpisać bardziej ogólną nazwę (np. miasto).', 'error');
+                Html::redirect(Html::url('/', ['from' => (string)($pending['fromQuery'] ?? ''), 'to' => (string)($pending['toQuery'] ?? '')]));
+            }
+
+            $fromV = (string)($_POST['fromV'] ?? '');
+            $toV = (string)($_POST['toV'] ?? '');
+            if ($fromV === '' || $toV === '') {
+                $this->flash('Wybierz zarówno miejsce startu, jak i cel.', 'error');
+                $this->layout('Wybór miejsc', $this->view->render('select_places', [
+                    'csrf' => Csrf::token(),
+                    'fromQuery' => (string)($pending['fromQuery'] ?? ''),
+                    'toQuery' => (string)($pending['toQuery'] ?? ''),
+                    'fromSuggestions' => $fromSug,
+                    'toSuggestions' => $toSug,
+                ]));
+                return;
+            }
+
+            $pending['fromV'] = $fromV;
+            $pending['toV'] = $toV;
+            $this->runSearchAndRenderResults($client, $pending);
+            return;
+        }
+
+        $params = $this->readSearchParamsFromPost();
+
+        if ($params['fromQuery'] === '' || $params['toQuery'] === '') {
+            $this->flash('Uzupełnij pola „Z” oraz „Do”.', 'error');
+            Html::redirect(Html::url('/', [
+                'from' => $params['fromQuery'],
+                'to' => $params['toQuery'],
+                'date' => $params['date'],
+                'time' => $params['time'],
+            ]));
+        }
+
+        $dateNorm = Input::normalizeDateYmd($params['date']);
+        if ($dateNorm === null) {
+            $this->flash('Podaj prawidłową datę wyjazdu.', 'error');
+            Html::redirect(Html::url('/', [
+                'from' => $params['fromQuery'],
+                'to' => $params['toQuery'],
+                'date' => $params['date'],
+                'time' => $params['time'],
+            ]));
+        }
+        $params['date'] = $dateNorm;
+
+        $resolved = $this->resolvePlaces($client, $params['fromQuery'], $params['toQuery']);
+
+        if ($resolved['needsSelection']) {
+            if (($resolved['fromSuggestions'] ?? []) === [] || ($resolved['toSuggestions'] ?? []) === []) {
+                $msg = 'Nie znaleziono dopasowań.';
+                if (($resolved['fromSuggestions'] ?? []) === []) {
+                    $msg .= ' Dla pola „Z”: ' . $params['fromQuery'] . '.';
+                }
+                if (($resolved['toSuggestions'] ?? []) === []) {
+                    $msg .= ' Dla pola „Do”: ' . $params['toQuery'] . '.';
+                }
+                $this->flash($msg . ' Spróbuj wpisać bardziej ogólną nazwę (np. miasto).', 'error');
+                Html::redirect(Html::url('/', ['from' => $params['fromQuery'], 'to' => $params['toQuery']]));
+            }
+            $_SESSION['pending_search'] = $params;
+            $_SESSION['pending_suggestions'] = [
+                'from' => $resolved['fromSuggestions'],
+                'to' => $resolved['toSuggestions'],
+            ];
+            $this->layout('Wybór miejsc', $this->view->render('select_places', [
+                'csrf' => Csrf::token(),
+                'fromQuery' => $params['fromQuery'],
+                'toQuery' => $params['toQuery'],
+                'fromSuggestions' => $resolved['fromSuggestions'],
+                'toSuggestions' => $resolved['toSuggestions'],
+            ]));
+            return;
+        }
+
+        $params['fromV'] = $resolved['fromV'];
+        $params['toV'] = $resolved['toV'];
+        $this->runSearchAndRenderResults($client, $params);
+    }
+
+    private function pageTimetableResults(): void
+    {
+        $stopId = trim((string)($_GET['stopId'] ?? ''));
+        if ($stopId === '' || !preg_match('/^\\d+$/', $stopId)) {
+            $this->flash('Podaj prawidłowy przystanek (stopId).', 'error');
+            Html::redirect('/timetable');
+        }
+
+        $dateRaw = trim((string)($_GET['date'] ?? ''));
+        $dateNorm = Input::normalizeDateYmd($dateRaw) ?? date('Y-m-d');
+
+        $fromTimeNorm = Input::normalizeTimeHm(trim((string)($_GET['from_time'] ?? ''))) ?? '';
+        $toTimeNorm = Input::normalizeTimeHm(trim((string)($_GET['to_time'] ?? ''))) ?? '';
+        if ($fromTimeNorm !== '' && $toTimeNorm !== '' && $this->timeToMinutes($fromTimeNorm) > $this->timeToMinutes($toTimeNorm)) {
+            $this->flash('„Godzina od” nie może być późniejsza niż „Godzina do”.', 'error');
+            Html::redirect(Html::url('/timetable/results', [
+                'stopId' => $stopId,
+                'date' => $dateNorm,
+                'from_time' => '',
+                'to_time' => '',
+            ]));
+        }
+
+        $filters = [
+            'date' => $dateNorm,
+            'from_time' => $fromTimeNorm,
+            'to_time' => $toTimeNorm,
+        ];
+
+        try {
+            $client = EpodroznikClient::fromSession();
+            $html = $client->getGeneralTimetableStop($stopId);
+            $parser = new TimetableParser();
+            $timetable = $parser->parseGeneralTimetableHtml($html);
+            $timetable = TimetableRules::filter($timetable, $filters);
+        } catch (\Throwable $e) {
+            $msg = trim($e->getMessage());
+            $msg = $msg !== '' ? $msg : 'Wystąpił nieoczekiwany błąd.';
+            $this->flash('Nie udało się pobrać rozkładu z e‑podroznik.pl. ' . $msg, 'error');
+            Html::redirect('/timetable');
+        }
+
+        $_SESSION['last_timetable_form'] = [
+            'q' => (string)($_SESSION['last_timetable_form']['q'] ?? ''),
+            'date' => $dateNorm,
+            'from_time' => $fromTimeNorm,
+            'to_time' => $toTimeNorm,
+        ];
+
+        $this->layout('Rozkład jazdy', $this->view->render('timetable_results', [
+            'csrf' => Csrf::token(),
+            'timetable' => $timetable,
+            'filters' => $filters,
+        ]));
+    }
+
+    private function handleExtend(): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->respondNotFound();
+            return;
+        }
+        if (!Csrf::validate($_POST['csrf'] ?? null)) {
+            $this->flash('Błędny token bezpieczeństwa (CSRF). Spróbuj ponownie.', 'error');
+            Html::redirect('/');
+        }
+        $dir = (string)($_POST['dir'] ?? '');
+        $url = null;
+        if ($dir === 'back') {
+            $url = $_SESSION['extend_back'] ?? null;
+        } elseif ($dir === 'forward') {
+            $url = $_SESSION['extend_forward'] ?? null;
+        }
+        if (!is_string($url) || $url === '') {
+            $this->flash('Brak kolejnych wyników do pobrania.', 'warn');
+            Html::redirect('/results#results');
+        }
+
+        $client = EpodroznikClient::fromSession();
+        try {
+            $html = $client->get($url, allowRelative: true);
+            $parser = new ResultsParser();
+            $results = $parser->parseResultsPageHtml($html);
+        } catch (\Throwable $e) {
+            $msg = trim($e->getMessage());
+            $msg = $msg !== '' ? $msg : 'Wystąpił nieoczekiwany błąd.';
+            $this->flash('Nie udało się pobrać kolejnych wyników z e‑podroznik.pl. ' . $msg, 'error');
+            Html::redirect('/results#results');
+        }
+
+        $_SESSION['extend_back'] = $results['extendBackUrl'];
+        $_SESSION['extend_forward'] = $results['extendForwardUrl'];
+        $_SESSION['last_results'] = $results;
+
+        Html::redirect('/results');
+    }
+
+    private function pageResults(): void
+    {
+        $results = $_SESSION['last_results'] ?? null;
+        if (!is_array($results)) {
+            $this->flash('Brak zapisanych wyników. Wykonaj wyszukiwanie.', 'warn');
+            Html::redirect('/');
+        }
+        $this->layout('Wyniki wyszukiwania', $this->view->render('results', [
+            'csrf' => Csrf::token(),
+            'results' => $results,
+        ]));
+    }
+
+    private function pageResult(): void
+    {
+        $id = (string)($_GET['id'] ?? '');
+        if ($id === '') {
+            $this->respondNotFound();
+            return;
+        }
+
+        try {
+            $client = EpodroznikClient::fromSession();
+            $html = $client->getResultExtended($id);
+            $parser = new DetailsParser();
+            $details = $parser->parseExtendedHtml($html);
+        } catch (\Throwable $e) {
+            $msg = trim($e->getMessage());
+            $msg = $msg !== '' ? $msg : 'Wystąpił nieoczekiwany błąd.';
+            $this->flash('Nie udało się pobrać szczegółów z e‑podroznik.pl. ' . $msg, 'error');
+            Html::redirect('/results#results');
+        }
+
+        $this->layout('Szczegóły trasy', $this->view->render('result', [
+            'csrf' => Csrf::token(),
+            'id' => $id,
+            'details' => $details,
+        ]));
+    }
+
+    private function runSearchAndRenderResults(EpodroznikClient $client, array $params): void
+    {
+        try {
+            $html = $client->search($params);
+            $parser = new ResultsParser();
+            $results = $parser->parseResultsPageHtml($html);
+        } catch (\Throwable $e) {
+            $msg = trim($e->getMessage());
+            $msg = $msg !== '' ? $msg : 'Wystąpił nieoczekiwany błąd.';
+            $this->flash('Nie udało się pobrać wyników z e‑podroznik.pl. ' . $msg, 'error');
+            Html::redirect(Html::url('/', [
+                'from' => (string)($params['fromQuery'] ?? ''),
+                'to' => (string)($params['toQuery'] ?? ''),
+                'date' => (string)($params['date'] ?? ''),
+                'time' => (string)($params['time'] ?? ''),
+            ]));
+        }
+
+        $_SESSION['extend_back'] = $results['extendBackUrl'];
+        $_SESSION['extend_forward'] = $results['extendForwardUrl'];
+        $_SESSION['last_results'] = $results;
+        $_SESSION['last_search_form'] = [
+            'from' => (string)($params['fromQuery'] ?? ''),
+            'to' => (string)($params['toQuery'] ?? ''),
+            'date' => (string)(Input::normalizeDateYmd((string)($params['date'] ?? '')) ?? ''),
+            'time' => (string)(Input::normalizeTimeHm((string)($params['time'] ?? '')) ?? ''),
+        ];
+        Html::redirect('/results');
+    }
+
+    private function resolvePlaces(EpodroznikClient $client, string $fromQuery, string $toQuery): array
+    {
+        $from = $client->suggest($fromQuery, requestKind: 'SOURCE');
+        $to = $client->suggest($toQuery, requestKind: 'DESTINATION');
+
+        $fromSuggestions = $this->filterRealSuggestions($from['suggestions'] ?? []);
+        $toSuggestions = $this->filterRealSuggestions($to['suggestions'] ?? []);
+
+        $fromPick = $this->pickSuggestion($fromQuery, $fromSuggestions);
+        $toPick = $this->pickSuggestion($toQuery, $toSuggestions);
+
+        $needsSelection = ($fromPick === null || $toPick === null);
+        if ($needsSelection) {
+            return [
+                'needsSelection' => true,
+                'fromSuggestions' => $fromSuggestions,
+                'toSuggestions' => $toSuggestions,
+                'fromV' => '',
+                'toV' => '',
+            ];
+        }
+
+        return [
+            'needsSelection' => false,
+            'fromSuggestions' => $fromSuggestions,
+            'toSuggestions' => $toSuggestions,
+            'fromV' => (string)($fromPick['placeDataString'] ?? ''),
+            'toV' => (string)($toPick['placeDataString'] ?? ''),
+        ];
+    }
+
+    private function filterRealSuggestions(array $suggestions): array
+    {
+        $out = [];
+        foreach ($suggestions as $s) {
+            if (!is_array($s)) {
+                continue;
+            }
+            if (($s['isFake'] ?? false) === true) {
+                continue;
+            }
+            if (!isset($s['placeDataString']) || !is_string($s['placeDataString']) || $s['placeDataString'] === '') {
+                continue;
+            }
+            $out[] = $s;
+        }
+        return $out;
+    }
+
+    private function pickSuggestion(string $query, array $suggestions): ?array
+    {
+        $q = mb_strtolower(trim($query));
+        if ($q === '') {
+            return null;
+        }
+        foreach ($suggestions as $s) {
+            $n = isset($s['n']) && is_string($s['n']) ? mb_strtolower(trim($s['n'])) : '';
+            if ($n !== '' && $n === $q) {
+                return $s;
+            }
+        }
+        if (count($suggestions) === 1) {
+            return $suggestions[0];
+        }
+        return null;
+    }
+
+    private function filterStopSuggestions(array $suggestions): array
+    {
+        $suggestions = $this->filterRealSuggestions($suggestions);
+        $out = [];
+        foreach ($suggestions as $s) {
+            if (!is_array($s)) {
+                continue;
+            }
+            $pds = $s['placeDataString'] ?? null;
+            if (!is_string($pds) || !preg_match('/^s\\|\\d+$/', $pds)) {
+                continue;
+            }
+            $out[] = $s;
+        }
+        return $out;
+    }
+
+    private function stopIdFromPlaceDataString(string $placeDataString): ?string
+    {
+        $placeDataString = trim($placeDataString);
+        if (!preg_match('/^s\\|(\\d+)$/', $placeDataString, $m)) {
+            return null;
+        }
+        return (string)$m[1];
+    }
+
+    private function readTimetableParamsFromPost(): array
+    {
+        return [
+            'q' => trim((string)($_POST['q'] ?? '')),
+            'date' => trim((string)($_POST['date'] ?? '')),
+            'from_time' => trim((string)($_POST['from_time'] ?? '')),
+            'to_time' => trim((string)($_POST['to_time'] ?? '')),
+        ];
+    }
+
+    private function timeToMinutes(string $timeHm): int
+    {
+        if (!preg_match('/^(\\d{2}):(\\d{2})$/', $timeHm, $m)) {
+            return 0;
+        }
+        return ((int)$m[1] * 60) + (int)$m[2];
+    }
+
+    private function readSearchParamsFromPost(): array
+    {
+        $fromQuery = trim((string)($_POST['from'] ?? ''));
+        $toQuery = trim((string)($_POST['to'] ?? ''));
+
+        $date = trim((string)($_POST['date'] ?? ''));
+        $timeRaw = trim((string)($_POST['time'] ?? ''));
+        $time = Input::normalizeTimeHm($timeRaw) ?? '';
+        $omitTime = (isset($_POST['omit_time']) && $_POST['omit_time'] === '1');
+        if ($time !== '') {
+            $omitTime = false;
+        }
+
+        $arrivalV = (string)($_POST['arrive_mode'] ?? 'DEPARTURE');
+        if (!in_array($arrivalV, ['DEPARTURE', 'ARRIVAL'], true)) {
+            $arrivalV = 'DEPARTURE';
+        }
+
+        $tripType = (string)($_POST['trip_type'] ?? 'one-way');
+        if (!in_array($tripType, ['one-way', 'two-way'], true)) {
+            $tripType = 'one-way';
+        }
+
+        $returnDate = trim((string)($_POST['return_date'] ?? ''));
+        $returnTimeRaw = trim((string)($_POST['return_time'] ?? ''));
+        $returnTime = Input::normalizeTimeHm($returnTimeRaw) ?? '';
+        $omitReturnTime = (isset($_POST['omit_return_time']) && $_POST['omit_return_time'] === '1');
+        if ($returnTime !== '') {
+            $omitReturnTime = false;
+        }
+
+        $returnArrivalV = (string)($_POST['return_arrive_mode'] ?? 'DEPARTURE');
+        if (!in_array($returnArrivalV, ['DEPARTURE', 'ARRIVAL'], true)) {
+            $returnArrivalV = 'DEPARTURE';
+        }
+
+        $preferDirects = (isset($_POST['prefer_direct']) && $_POST['prefer_direct'] === '1');
+        $onlyOnline = (isset($_POST['only_online']) && $_POST['only_online'] === '1');
+
+        $minChange = trim((string)($_POST['min_change'] ?? ''));
+        if ($minChange !== '' && !in_array($minChange, ['5', '10', '20', '30'], true)) {
+            $minChange = '';
+        }
+
+        $carrierTypes = $_POST['carrier_types'] ?? [];
+        if (!is_array($carrierTypes)) {
+            $carrierTypes = [];
+        }
+        $carrierTypes = array_values(array_unique(array_filter(array_map('strval', $carrierTypes), static function (string $v): bool {
+            return in_array($v, ['1', '2', '3', '4', '5'], true);
+        })));
+        if ($carrierTypes === []) {
+            $carrierTypes = ['1', '2', '3', '4', '5'];
+        }
+
+        return [
+            'fromQuery' => $fromQuery,
+            'toQuery' => $toQuery,
+            'date' => $date,
+            'time' => $time,
+            'omitTime' => $omitTime,
+            'arrivalV' => $arrivalV,
+            'tripType' => $tripType,
+            'returnDate' => $returnDate,
+            'returnTime' => $returnTime,
+            'omitReturnTime' => $omitReturnTime,
+            'returnArrivalV' => $returnArrivalV,
+            'preferDirects' => $preferDirects,
+            'onlyOnline' => $onlyOnline,
+            'minChange' => $minChange,
+            'carrierTypes' => $carrierTypes,
+            'tseVw' => 'regularP',
+        ];
+    }
+
+    private function respondNotFound(): void
+    {
+        http_response_code(404);
+        $this->layout('Nie znaleziono', $this->view->render('error', [
+            'title' => 'Nie znaleziono',
+            'message' => 'Nie znaleziono takiej strony.',
+        ]));
+    }
+
+    private function respondError(\Throwable $e): void
+    {
+        http_response_code(500);
+        $this->layout('Błąd', $this->view->render('error', [
+            'title' => 'Wystąpił błąd',
+            'message' => $e->getMessage(),
+        ]));
+    }
+
+    private function flash(string $message, string $level): void
+    {
+        $_SESSION['flash'] = ['message' => $message, 'level' => $level];
+    }
+}

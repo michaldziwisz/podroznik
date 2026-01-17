@@ -1,0 +1,12 @@
+.DS_Store
+*.swp
+*.swo
+
+# Local runtime
+/var/
+/tmp/
+
+# Editor
+.idea/
+.vscode/
+
