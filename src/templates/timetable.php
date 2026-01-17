@@ -1,6 +1,9 @@
 <?php
 /** @var string $csrf */
 /** @var array $defaults */
+$turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
+$turnstileRequired = (bool)($turnstile['required'] ?? false);
+$turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 $q = (string)($defaults['q'] ?? '');
 $date = (string)($defaults['date'] ?? date('Y-m-d'));
 $fromTime = (string)($defaults['from_time'] ?? '');
@@ -41,6 +44,15 @@ $toTime = (string)($defaults['to_time'] ?? '');
         </div>
       </fieldset>
 
+      <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
+        <div class="field" aria-label="Weryfikacja antyspam">
+          <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
+          <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
+          <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>
+        </div>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+      <?php endif; ?>
+
       <div class="actions">
         <button class="btn primary" type="submit">Pokaż rozkład</button>
         <a class="btn" href="/">Wyszukiwarka połączeń</a>
@@ -52,4 +64,3 @@ $toTime = (string)($defaults['to_time'] ?? '');
     Źródło: „Tabliczki Dworcowe i Przystankowe” w e‑podroznik.pl. Lista „przez:” nie zawsze zawiera wszystkie miejscowości pośrednie.
   </div>
 </div>
-

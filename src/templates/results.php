@@ -1,6 +1,9 @@
 <?php
 /** @var string $csrf */
 /** @var array $results */
+$turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
+$turnstileRequired = (bool)($turnstile['required'] ?? false);
+$turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 $count = (int)($results['count'] ?? 0);
 ?>
 <div class="stack" id="results">
@@ -16,10 +19,21 @@ $count = (int)($results['count'] ?? 0);
       </div>
     <?php endif; ?>
     <div class="actions">
-      <form method="post" action="/extend">
+      <form method="post" action="/extend" class="stack" novalidate>
         <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
-        <button class="btn" type="submit" name="dir" value="back" <?= empty($_SESSION['extend_back']) ? 'disabled' : '' ?>>Wcześniejsze połączenia</button>
-        <button class="btn" type="submit" name="dir" value="forward" <?= empty($_SESSION['extend_forward']) ? 'disabled' : '' ?>>Późniejsze połączenia</button>
+        <div class="actions">
+          <button class="btn" type="submit" name="dir" value="back" <?= empty($_SESSION['extend_back']) ? 'disabled' : '' ?>>Wcześniejsze połączenia</button>
+          <button class="btn" type="submit" name="dir" value="forward" <?= empty($_SESSION['extend_forward']) ? 'disabled' : '' ?>>Późniejsze połączenia</button>
+        </div>
+
+        <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
+          <div class="field" aria-label="Weryfikacja antyspam">
+            <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
+            <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
+            <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>
+          </div>
+          <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <?php endif; ?>
       </form>
       <a class="btn" href="/">Nowe wyszukiwanie</a>
     </div>

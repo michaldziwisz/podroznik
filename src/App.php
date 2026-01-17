@@ -135,6 +135,7 @@ final class App
         $this->layout('Wyszukiwarka połączeń', $this->view->render('search', [
             'csrf' => Csrf::token(),
             'defaults' => $defaults,
+            'turnstile' => $this->turnstileViewModel(),
         ]));
     }
 
@@ -165,6 +166,7 @@ final class App
         $this->layout('Rozkład jazdy z przystanku', $this->view->render('timetable', [
             'csrf' => Csrf::token(),
             'defaults' => $defaults,
+            'turnstile' => $this->turnstileViewModel(),
         ]));
     }
 
@@ -366,6 +368,23 @@ final class App
                 Html::redirect('/timetable');
             }
 
+            $turnstileError = $this->validateTurnstileForPost();
+            if ($turnstileError !== null) {
+                $this->flash($turnstileError, 'error');
+                $this->layout('Wybór przystanku', $this->view->render('timetable_select_stop', [
+                    'csrf' => Csrf::token(),
+                    'q' => (string)($pending['q'] ?? ''),
+                    'suggestions' => $pendingSuggestions,
+                    'filters' => [
+                        'date' => (string)($pending['date'] ?? ''),
+                        'from_time' => (string)($pending['from_time'] ?? ''),
+                        'to_time' => (string)($pending['to_time'] ?? ''),
+                    ],
+                    'turnstile' => $this->turnstileViewModel(),
+                ]));
+                return;
+            }
+
             $stopV = (string)($_POST['stopV'] ?? '');
             $stopId = $this->stopIdFromPlaceDataString($stopV);
             if ($stopId === null) {
@@ -379,6 +398,7 @@ final class App
                         'from_time' => (string)($pending['from_time'] ?? ''),
                         'to_time' => (string)($pending['to_time'] ?? ''),
                     ],
+                    'turnstile' => $this->turnstileViewModel(),
                 ]));
                 return;
             }
@@ -396,6 +416,22 @@ final class App
                 'from_time' => (string)($pending['from_time'] ?? ''),
                 'to_time' => (string)($pending['to_time'] ?? ''),
             ]));
+        }
+
+        $turnstileError = $this->validateTurnstileForPost();
+        if ($turnstileError !== null) {
+            $this->flash($turnstileError, 'error');
+            $defaults = $this->readTimetableParamsFromPost();
+            $defaults['date'] = Input::normalizeDateYmd($defaults['date'] ?? '') ?? date('Y-m-d');
+            $defaults['from_time'] = Input::normalizeTimeHm($defaults['from_time'] ?? '') ?? '';
+            $defaults['to_time'] = Input::normalizeTimeHm($defaults['to_time'] ?? '') ?? '';
+
+            $this->layout('Rozkład jazdy z przystanku', $this->view->render('timetable', [
+                'csrf' => Csrf::token(),
+                'defaults' => $defaults,
+                'turnstile' => $this->turnstileViewModel(),
+            ]));
+            return;
         }
 
         $params = $this->readTimetableParamsFromPost();
@@ -484,6 +520,7 @@ final class App
                 'from_time' => $params['from_time'],
                 'to_time' => $params['to_time'],
             ],
+            'turnstile' => $this->turnstileViewModel(),
         ]));
     }
 
@@ -517,6 +554,20 @@ final class App
                 Html::redirect(Html::url('/', ['from' => (string)($pending['fromQuery'] ?? ''), 'to' => (string)($pending['toQuery'] ?? '')]));
             }
 
+            $turnstileError = $this->validateTurnstileForPost();
+            if ($turnstileError !== null) {
+                $this->flash($turnstileError, 'error');
+                $this->layout('Wybór miejsc', $this->view->render('select_places', [
+                    'csrf' => Csrf::token(),
+                    'fromQuery' => (string)($pending['fromQuery'] ?? ''),
+                    'toQuery' => (string)($pending['toQuery'] ?? ''),
+                    'fromSuggestions' => $fromSug,
+                    'toSuggestions' => $toSug,
+                    'turnstile' => $this->turnstileViewModel(),
+                ]));
+                return;
+            }
+
             $fromV = (string)($_POST['fromV'] ?? '');
             $toV = (string)($_POST['toV'] ?? '');
             if ($fromV === '' || $toV === '') {
@@ -527,6 +578,7 @@ final class App
                     'toQuery' => (string)($pending['toQuery'] ?? ''),
                     'fromSuggestions' => $fromSug,
                     'toSuggestions' => $toSug,
+                    'turnstile' => $this->turnstileViewModel(),
                 ]));
                 return;
             }
@@ -534,6 +586,26 @@ final class App
             $pending['fromV'] = $fromV;
             $pending['toV'] = $toV;
             $this->runSearchAndRenderResults($client, $pending);
+            return;
+        }
+
+        $turnstileError = $this->validateTurnstileForPost();
+        if ($turnstileError !== null) {
+            $this->flash($turnstileError, 'error');
+            $defaults = [
+                'from' => trim((string)($_POST['from'] ?? '')),
+                'to' => trim((string)($_POST['to'] ?? '')),
+                'date' => trim((string)($_POST['date'] ?? '')),
+                'time' => trim((string)($_POST['time'] ?? '')),
+            ];
+            $defaults['date'] = Input::normalizeDateYmd($defaults['date'] ?? '') ?? date('Y-m-d');
+            $defaults['time'] = Input::normalizeTimeHm($defaults['time'] ?? '') ?? '';
+
+            $this->layout('Wyszukiwarka połączeń', $this->view->render('search', [
+                'csrf' => Csrf::token(),
+                'defaults' => $defaults,
+                'turnstile' => $this->turnstileViewModel(),
+            ]));
             return;
         }
 
@@ -586,6 +658,7 @@ final class App
                 'toQuery' => $params['toQuery'],
                 'fromSuggestions' => $resolved['fromSuggestions'],
                 'toSuggestions' => $resolved['toSuggestions'],
+                'turnstile' => $this->turnstileViewModel(),
             ]));
             return;
         }
@@ -661,6 +734,13 @@ final class App
             $this->flash('Błędny token bezpieczeństwa (CSRF). Spróbuj ponownie.', 'error');
             Html::redirect('/');
         }
+
+        $turnstileError = $this->validateTurnstileForPost();
+        if ($turnstileError !== null) {
+            $this->flash($turnstileError, 'error');
+            Html::redirect('/results#results');
+        }
+
         $dir = (string)($_POST['dir'] ?? '');
         $url = null;
         if ($dir === 'back') {
@@ -702,6 +782,7 @@ final class App
         $this->layout('Wyniki wyszukiwania', $this->view->render('results', [
             'csrf' => Csrf::token(),
             'results' => $results,
+            'turnstile' => $this->turnstileViewModel(),
         ]));
     }
 
@@ -890,6 +971,59 @@ final class App
             return $ip;
         }
         return (string)($_SERVER['REMOTE_ADDR'] ?? '');
+    }
+
+    private function turnstileViewModel(): array
+    {
+        $t = Turnstile::fromEnv();
+        if ($t === null) {
+            return [
+                'enabled' => false,
+                'required' => false,
+                'siteKey' => '',
+            ];
+        }
+
+        $ip = $this->clientIpForSygnalista();
+        $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+
+        return [
+            'enabled' => true,
+            'required' => !$t->isSessionValid($ip, $ua),
+            'siteKey' => $t->siteKey(),
+        ];
+    }
+
+    private function validateTurnstileForPost(): ?string
+    {
+        $t = Turnstile::fromEnv();
+        if ($t === null) {
+            return null;
+        }
+
+        $ip = $this->clientIpForSygnalista();
+        $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+        if ($t->isSessionValid($ip, $ua)) {
+            return null;
+        }
+
+        $token = trim((string)($_POST['cf-turnstile-response'] ?? ''));
+        if ($token === '') {
+            return 'Potwierdź weryfikację antyspam (Turnstile) i spróbuj ponownie.';
+        }
+
+        try {
+            $ok = $t->verifyToken($token, $ip);
+        } catch (\Throwable) {
+            return 'Nie udało się zweryfikować weryfikacji antyspam. Spróbuj ponownie.';
+        }
+
+        if (!$ok) {
+            return 'Nie udało się zweryfikować weryfikacji antyspam. Spróbuj ponownie.';
+        }
+
+        $t->markSessionValid($ip, $ua);
+        return null;
     }
 
     private function readSearchParamsFromPost(): array

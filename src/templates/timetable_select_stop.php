@@ -3,6 +3,9 @@
 /** @var string $q */
 /** @var array $suggestions */
 /** @var array $filters */
+$turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
+$turnstileRequired = (bool)($turnstile['required'] ?? false);
+$turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 ?>
 <div class="stack">
   <h1>Wybór przystanku</h1>
@@ -48,6 +51,15 @@
         </div>
       </fieldset>
 
+      <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
+        <div class="field" aria-label="Weryfikacja antyspam">
+          <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
+          <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
+          <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>
+        </div>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+      <?php endif; ?>
+
       <div class="actions">
         <button class="btn primary" type="submit">Pokaż rozkład</button>
         <a class="btn" href="<?= \TyfloPodroznik\Html::url('/timetable', $filters + ['q' => $q]) ?>">Wróć</a>
@@ -55,4 +67,3 @@
     </form>
   </div>
 </div>
-

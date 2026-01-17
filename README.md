@@ -33,3 +33,15 @@ Konfiguracja przez zmienne środowiskowe (np. `fastcgi_param` w nginx):
 - `SYGNALISTA_APP_ID` (np. `podroznik`)
 - opcjonalnie: `SYGNALISTA_APP_TOKEN` (jeśli w Workerze włączony `APP_TOKEN_MAP`)
 - opcjonalnie: `SYGNALISTA_APP_VERSION`, `SYGNALISTA_APP_BUILD`, `SYGNALISTA_APP_CHANNEL`
+
+## Ochrona formularzy (Cloudflare Turnstile)
+
+Aplikacja może zabezpieczać formularze (anty-bot) Turnstile po stronie serwera.
+
+Konfiguracja przez zmienne środowiskowe (np. `fastcgi_param` w nginx):
+
+- `TURNSTILE_SITE_KEY`
+- `TURNSTILE_SECRET_KEY` (sekret – nie commituj do repo)
+- opcjonalnie: `TURNSTILE_TTL_SECONDS` (domyślnie `600`)
+
+W Cloudflare Turnstile dodaj do “hostname” także `localhost` / `127.0.0.1`, jeśli chcesz testować lokalnie.
