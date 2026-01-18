@@ -50,6 +50,7 @@ $count = (int)($results['count'] ?? 0);
         $toDate = (string)($r['to']['date'] ?? '');
         $duration = (string)($r['duration'] ?? '');
         $sellable = (bool)($r['sellable'] ?? false);
+        $buyUrl = \TyfloPodroznik\Html::epodroznikUrl($r['buyHref'] ?? null);
         $resId = (string)($r['resId'] ?? '');
         $segments = (int)($r['connectionsCount'] ?? 0);
         $changes = (int)($r['sort']['changes'] ?? 0);
@@ -74,6 +75,9 @@ $count = (int)($results['count'] ?? 0);
           <dd><?= $sellable ? '<span class="ok">możliwy</span>' : '<span class="warn">brak / niedostępny</span>' ?></dd>
         </dl>
         <div class="actions">
+          <?php if (is_string($buyUrl) && $buyUrl !== ''): ?>
+            <a class="btn primary" href="<?= \TyfloPodroznik\Html::e($buyUrl) ?>">Kup bilet (e‑podroznik.pl)</a>
+          <?php endif; ?>
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>
           <?php endif; ?>

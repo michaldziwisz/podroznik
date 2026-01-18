@@ -5,6 +5,35 @@ namespace TyfloPodroznik;
 
 final class Html
 {
+    public static function epodroznikUrl(?string $href): ?string
+    {
+        if ($href === null) {
+            return null;
+        }
+        $href = trim($href);
+        if ($href === '') {
+            return null;
+        }
+
+        if (str_starts_with($href, '/')) {
+            return 'https://www.e-podroznik.pl' . $href;
+        }
+
+        $parts = parse_url($href);
+        if (!is_array($parts)) {
+            return null;
+        }
+        $scheme = isset($parts['scheme']) && is_string($parts['scheme']) ? strtolower($parts['scheme']) : '';
+        $host = isset($parts['host']) && is_string($parts['host']) ? strtolower($parts['host']) : '';
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return null;
+        }
+        if ($host === 'e-podroznik.pl' || str_ends_with($host, '.e-podroznik.pl')) {
+            return $href;
+        }
+        return null;
+    }
+
     public static function e(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
