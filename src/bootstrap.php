@@ -8,6 +8,10 @@ const BASE_DIR = __DIR__ . '/..';
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.use_trans_sid', '0');
+
 session_set_cookie_params([
     'httponly' => true,
     'samesite' => 'Lax',
@@ -29,4 +33,3 @@ spl_autoload_register(static function (string $class): void {
         require $path;
     }
 });
-

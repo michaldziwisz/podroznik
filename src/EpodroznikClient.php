@@ -6,6 +6,7 @@ namespace TyfloPodroznik;
 final class EpodroznikClient
 {
     private const BASE_URL = 'https://www.e-podroznik.pl';
+    private const BASE_HOST = 'www.e-podroznik.pl';
 
     private function __construct(
         private string $cookieJar,
@@ -22,6 +23,7 @@ final class EpodroznikClient
             if (!is_string($cookieJar) || $cookieJar === '') {
                 throw new \RuntimeException('Nie można utworzyć pliku cookies (tmp).');
             }
+            @chmod($cookieJar, 0o600);
             $_SESSION['ep_cookiejar'] = $cookieJar;
         }
 
@@ -210,20 +212,55 @@ final class EpodroznikClient
 
     public function get(string $pathOrUrl, bool $allowRelative = false): string
     {
-        $url = $pathOrUrl;
-        if ($allowRelative && str_starts_with($pathOrUrl, '/')) {
-            $url = self::BASE_URL . $pathOrUrl;
-        } elseif (str_starts_with($pathOrUrl, '/')) {
-            $url = self::BASE_URL . $pathOrUrl;
-        }
-
+        $url = $this->normalizeUrl($pathOrUrl);
         return $this->request('GET', $url, null, followLocation: true);
     }
 
     private function post(string $path, array $data, array $extraHeaders = [], bool $followLocation = false): string
     {
-        $url = str_starts_with($path, 'http') ? $path : (self::BASE_URL . $path);
+        $url = $this->normalizeUrl($path);
         return $this->request('POST', $url, $data, extraHeaders: $extraHeaders, followLocation: $followLocation);
+    }
+
+    private function normalizeUrl(string $pathOrUrl): string
+    {
+        $candidate = trim($pathOrUrl);
+        if ($candidate === '') {
+            throw new \InvalidArgumentException('Brak URL.');
+        }
+
+        if (str_starts_with($candidate, '/')) {
+            return self::BASE_URL . $candidate;
+        }
+
+        if (str_starts_with($candidate, '//')) {
+            $candidate = 'https:' . $candidate;
+        }
+
+        if (preg_match('/^https?:\\/\\//i', $candidate) !== 1) {
+            throw new \InvalidArgumentException('Nieprawidłowy URL dla e‑podroznik.pl.');
+        }
+
+        $parts = parse_url($candidate);
+        if (!is_array($parts)) {
+            throw new \InvalidArgumentException('Nieprawidłowy URL dla e‑podroznik.pl.');
+        }
+
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = strtolower((string)($parts['host'] ?? ''));
+        if ($scheme !== 'https') {
+            throw new \InvalidArgumentException('Nieprawidłowy schemat URL dla e‑podroznik.pl.');
+        }
+        if ($host !== self::BASE_HOST) {
+            throw new \InvalidArgumentException('Nieprawidłowy host URL dla e‑podroznik.pl.');
+        }
+
+        $port = $parts['port'] ?? null;
+        if ($port !== null && (int)$port !== 443) {
+            throw new \InvalidArgumentException('Nieprawidłowy port URL dla e‑podroznik.pl.');
+        }
+
+        return $candidate;
     }
 
     private function request(
@@ -249,6 +286,10 @@ final class EpodroznikClient
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_CONNECTTIMEOUT => 12,
             CURLOPT_TIMEOUT => 35,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             CURLOPT_ENCODING => '',
             CURLOPT_COOKIEJAR => $this->cookieJar,
@@ -300,6 +341,7 @@ final class EpodroznikClient
         if (!is_string($newJar) || $newJar === '') {
             throw new \RuntimeException('Nie można utworzyć pliku cookies (tmp).');
         }
+        @chmod($newJar, 0o600);
         $this->cookieJar = $newJar;
         $_SESSION['ep_cookiejar'] = $newJar;
 

@@ -105,6 +105,10 @@ final class Turnstile
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_CONNECTTIMEOUT => 6,
             CURLOPT_TIMEOUT => 10,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_USERAGENT => 'PodroznikTyflo/1.0 (+https://podroznik.tyflo.eu.org)',
         ]);
 
@@ -125,4 +129,3 @@ final class Turnstile
         return is_array($decoded) && (($decoded['success'] ?? false) === true);
     }
 }
-

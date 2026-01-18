@@ -17,6 +17,8 @@ final class App
         $requestUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
         $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
 
+        $this->sendSecurityHeaders();
+
         $method = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
         if (
             $path !== '/'
@@ -31,8 +33,7 @@ final class App
             if (is_string($query) && $query !== '') {
                 $canonical .= '?' . $query;
             }
-            header('Location: ' . $canonical, true, 301);
-            return;
+            Html::redirect($canonical, 301);
         }
 
         if ($path !== '/') {
@@ -966,11 +967,23 @@ final class App
 
     private function clientIpForSygnalista(): string
     {
-        $ip = (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
-        if ($ip !== '') {
+        $ip = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
+        if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP) !== false) {
             return $ip;
         }
-        return (string)($_SERVER['REMOTE_ADDR'] ?? '');
+        $ip = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+        if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+            return $ip;
+        }
+        return '';
+    }
+
+    private function sendSecurityHeaders(): void
+    {
+        header('X-Content-Type-Options: nosniff');
+        header('X-Frame-Options: DENY');
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+        header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
     }
 
     private function turnstileViewModel(): array
@@ -1112,10 +1125,11 @@ final class App
 
     private function respondError(\Throwable $e): void
     {
+        error_log((string)$e);
         http_response_code(500);
         $this->layout('Błąd', $this->view->render('error', [
             'title' => 'Wystąpił błąd',
-            'message' => $e->getMessage(),
+            'message' => 'Wystąpił błąd po stronie serwera. Spróbuj ponownie za chwilę.',
         ]));
     }
 
