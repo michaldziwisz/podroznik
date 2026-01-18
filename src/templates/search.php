@@ -53,22 +53,23 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend>Tryb</legend>
-        <div class="stack">
-          <div class="field">
-            <span class="help">Wyszukuj wg:</span>
+      <div class="grid-2" aria-label="Tryb">
+        <fieldset>
+          <legend>Wyszukuj wg</legend>
+          <div class="stack">
             <label><input type="radio" name="arrive_mode" value="DEPARTURE" checked> Odjazdu</label>
             <label><input type="radio" name="arrive_mode" value="ARRIVAL"> Przyjazdu</label>
           </div>
-          <div class="field">
-            <span class="help">Podróż:</span>
+        </fieldset>
+        <fieldset>
+          <legend>Podróż</legend>
+          <div class="stack">
             <label><input type="radio" name="trip_type" value="one-way" checked> W jedną stronę</label>
             <label><input type="radio" name="trip_type" value="two-way"> W obie strony</label>
-            <div class="help">Pola powrotu pojawią się po wybraniu „W obie strony”.</div>
           </div>
-        </div>
-      </fieldset>
+          <div class="help">Pola powrotu pojawią się po wybraniu „W obie strony”.</div>
+        </fieldset>
+      </div>
 
       <fieldset class="grid-2" id="return_fields" hidden disabled>
         <legend>Powrót (opcjonalnie)</legend>
