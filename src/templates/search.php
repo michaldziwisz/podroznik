@@ -39,7 +39,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            data-ep-status="from_status"
 	          >
 	          <input type="hidden" id="fromV" name="fromV" value="">
-	          <div id="from_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter.</div>
+	          <div id="from_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź.</div>
 	          <div id="from_status" class="sr-only" aria-live="polite"></div>
 	          <ul id="from_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>
@@ -66,7 +66,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            data-ep-status="to_status"
 	          >
 	          <input type="hidden" id="toV" name="toV" value="">
-	          <div id="to_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter.</div>
+	          <div id="to_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź.</div>
 	          <div id="to_status" class="sr-only" aria-live="polite"></div>
 	          <ul id="to_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>

@@ -41,7 +41,7 @@ $toTime = (string)($defaults['to_time'] ?? '');
 	            data-ep-status="q_status"
 	          >
 	          <input type="hidden" id="stopV" name="stopV" value="">
-	          <div id="q_help" class="help">Wpisz nazwę miasta lub przystanku. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter.</div>
+	          <div id="q_help" class="help">Wpisz nazwę miasta lub przystanku. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź.</div>
 	          <div id="q_status" class="sr-only" aria-live="polite"></div>
 	          <ul id="stop_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>

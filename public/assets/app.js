@@ -101,7 +101,14 @@
           li.appendChild(info);
         }
 
-        li.addEventListener('mousedown', (ev) => {
+        let handled = false;
+        li.addEventListener('pointerdown', (ev) => {
+          handled = true;
+          ev.preventDefault();
+          selectIndex(i);
+        });
+        li.addEventListener('click', (ev) => {
+          if (handled) return;
           ev.preventDefault();
           selectIndex(i);
         });
@@ -181,7 +188,7 @@
           activeIndex = items.length > 0 ? 0 : -1;
           renderList();
           if (items.length > 0) {
-            setStatus(`Podpowiedzi: ${items.length}. Użyj strzałek góra/dół i Enter.`);
+            setStatus(`Podpowiedzi: ${items.length}. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź.`);
           }
         } catch (e) {
           if (e && e.name === 'AbortError') return;
@@ -243,7 +250,7 @@
     });
 
     input.addEventListener('blur', () => {
-      window.setTimeout(() => closeList(), 150);
+      window.setTimeout(() => closeList(), 300);
     });
 
     document.addEventListener('click', (ev) => {
@@ -276,4 +283,3 @@
     init();
   }
 })();
-
