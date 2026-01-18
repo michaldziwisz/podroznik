@@ -65,11 +65,12 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
             <span class="help">Podróż:</span>
             <label><input type="radio" name="trip_type" value="one-way" checked> W jedną stronę</label>
             <label><input type="radio" name="trip_type" value="two-way"> W obie strony</label>
+            <div class="help">Pola powrotu pojawią się po wybraniu „W obie strony”.</div>
           </div>
         </div>
       </fieldset>
 
-      <fieldset class="grid-2">
+      <fieldset class="grid-2" id="return_fields">
         <legend>Powrót (opcjonalnie)</legend>
         <div class="field">
           <label for="return_date">Data powrotu</label>
@@ -98,6 +99,29 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
           <label><input type="radio" name="return_arrive_mode" value="ARRIVAL"> Przyjazdu</label>
         </div>
       </fieldset>
+
+      <script>
+        (function () {
+          var form = document.querySelector('form[action="/search"]');
+          if (!form) return;
+
+          var returnFields = document.getElementById('return_fields');
+          if (!returnFields) return;
+
+          function sync() {
+            var checked = form.querySelector('input[name="trip_type"]:checked');
+            var isTwoWay = checked && checked.value === 'two-way';
+            returnFields.hidden = !isTwoWay;
+            returnFields.disabled = !isTwoWay;
+          }
+
+          var radios = form.querySelectorAll('input[name="trip_type"]');
+          for (var i = 0; i < radios.length; i++) {
+            radios[i].addEventListener('change', sync);
+          }
+          sync();
+        })();
+      </script>
 
       <fieldset>
         <legend>Ustawienia wyszukiwania</legend>
