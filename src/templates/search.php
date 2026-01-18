@@ -70,7 +70,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         </div>
       </fieldset>
 
-      <fieldset class="grid-2" id="return_fields">
+      <fieldset class="grid-2" id="return_fields" hidden disabled>
         <legend>Powrót (opcjonalnie)</legend>
         <div class="field">
           <label for="return_date">Data powrotu</label>
@@ -108,11 +108,16 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
           var returnFields = document.getElementById('return_fields');
           if (!returnFields) return;
 
+          var inputs = returnFields.querySelectorAll('input, select, textarea, button');
+
           function sync() {
             var checked = form.querySelector('input[name="trip_type"]:checked');
             var isTwoWay = checked && checked.value === 'two-way';
             returnFields.hidden = !isTwoWay;
             returnFields.disabled = !isTwoWay;
+            for (var i = 0; i < inputs.length; i++) {
+              inputs[i].disabled = !isTwoWay;
+            }
           }
 
           var radios = form.querySelectorAll('input[name="trip_type"]');
