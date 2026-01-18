@@ -32,6 +32,16 @@ final class Input
             return sprintf('%04d-%02d-%02d', $y, $mo, $d);
         }
 
+        if (preg_match('/^(\\d{4})(\\d{2})(\\d{2})$/', $date, $m)) {
+            $y = (int)$m[1];
+            $mo = (int)$m[2];
+            $d = (int)$m[3];
+            if (!checkdate($mo, $d, $y)) {
+                return null;
+            }
+            return sprintf('%04d-%02d-%02d', $y, $mo, $d);
+        }
+
         return null;
     }
 
@@ -73,4 +83,3 @@ final class Input
         return null;
     }
 }
-

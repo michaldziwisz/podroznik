@@ -18,6 +18,33 @@
     return url.toString();
   }
 
+  function isIOS() {
+    const ua = navigator.userAgent || '';
+    if (/iP(hone|od|ad)/.test(ua)) return true;
+    // iPadOS (desktop UA)
+    return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
+  }
+
+  function disableNativeDateTimePickersOnIOS() {
+    if (!isIOS()) return;
+    const inputs = document.querySelectorAll('input[type="date"], input[type="time"]');
+    for (const input of inputs) {
+      if (!(input instanceof HTMLInputElement)) continue;
+      const t = (input.getAttribute('type') || '').toLowerCase();
+      if (t !== 'date' && t !== 'time') continue;
+      input.dataset.epOriginalType = t;
+      input.setAttribute('type', 'text');
+      input.autocomplete = 'off';
+      input.inputMode = 'numeric';
+      if (t === 'date' && !input.placeholder) {
+        input.placeholder = 'YYYY-MM-DD';
+      }
+      if (t === 'time' && !input.placeholder) {
+        input.placeholder = 'HH:MM';
+      }
+    }
+  }
+
   function initAutocomplete(input) {
     const kind = (input.dataset.epKind || 'SOURCE').toUpperCase();
     const type = (input.dataset.epType || 'ALL').toUpperCase();
@@ -269,6 +296,7 @@
   }
 
   function init() {
+    disableNativeDateTimePickersOnIOS();
     const inputs = document.querySelectorAll('input[data-ep-suggest="1"]');
     for (const input of inputs) {
       if (input instanceof HTMLInputElement) {

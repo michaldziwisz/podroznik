@@ -49,22 +49,22 @@ $toTime = (string)($defaults['to_time'] ?? '');
 
       <fieldset class="grid-2">
         <legend>Filtry (opcjonalnie)</legend>
-        <div class="field">
-          <label for="date">Dzień</label>
-          <input id="date" name="date" type="date" required value="<?= \TyfloPodroznik\Html::e($date) ?>">
-          <div class="help">Rozkład zostanie przefiltrowany do wybranego dnia na podstawie opisów kursowania.</div>
-        </div>
-        <div class="field">
-          <label for="from_time">Godzina od</label>
-          <input id="from_time" name="from_time" type="time" step="60" autocomplete="off" value="<?= \TyfloPodroznik\Html::e($fromTime) ?>">
-          <div class="help">Jeśli puste — pokaż cały dzień.</div>
-        </div>
-        <div class="field">
-          <label for="to_time">Godzina do</label>
-          <input id="to_time" name="to_time" type="time" step="60" autocomplete="off" value="<?= \TyfloPodroznik\Html::e($toTime) ?>">
-          <div class="help">Jeśli puste — bez górnego limitu.</div>
-        </div>
-      </fieldset>
+	        <div class="field">
+	          <label for="date">Dzień</label>
+	          <input id="date" name="date" type="date" placeholder="YYYY-MM-DD" required value="<?= \TyfloPodroznik\Html::e($date) ?>">
+	          <div class="help">Format: YYYY-MM-DD lub DD.MM.YYYY. Rozkład zostanie przefiltrowany do wybranego dnia na podstawie opisów kursowania.</div>
+	        </div>
+	        <div class="field">
+	          <label for="from_time">Godzina od</label>
+	          <input id="from_time" name="from_time" type="time" step="60" autocomplete="off" placeholder="HH:MM" value="<?= \TyfloPodroznik\Html::e($fromTime) ?>">
+	          <div class="help">Jeśli puste — pokaż cały dzień.</div>
+	        </div>
+	        <div class="field">
+	          <label for="to_time">Godzina do</label>
+	          <input id="to_time" name="to_time" type="time" step="60" autocomplete="off" placeholder="HH:MM" value="<?= \TyfloPodroznik\Html::e($toTime) ?>">
+	          <div class="help">Jeśli puste — bez górnego limitu.</div>
+	        </div>
+	      </fieldset>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
         <div class="field" aria-label="Weryfikacja antyspam">
