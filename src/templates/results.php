@@ -5,6 +5,13 @@ $turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
 $turnstileRequired = (bool)($turnstile['required'] ?? false);
 $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 $count = (int)($results['count'] ?? 0);
+$anySellable = false;
+foreach (($results['results'] ?? []) as $r) {
+  if (is_array($r) && (($r['sellable'] ?? false) === true)) {
+    $anySellable = true;
+    break;
+  }
+}
 ?>
 <div class="stack" id="results">
   <h1>Wyniki wyszukiwania</h1>
@@ -16,6 +23,11 @@ $count = (int)($results['count'] ?? 0);
     <?php if ($count === 0): ?>
       <div class="help">
         Brak wyników dla wybranych ustawień. Spróbuj zaznaczyć inne środki transportu albo wyłączyć „Preferuj bez przesiadek”.
+      </div>
+    <?php endif; ?>
+    <?php if ($anySellable): ?>
+      <div class="help">
+        Zakup biletów odbywa się w serwisie e‑podroznik.pl. Połączenia z opcją zakupu są oznaczone „Bilet online: możliwy”.
       </div>
     <?php endif; ?>
     <div class="actions">
@@ -36,6 +48,9 @@ $count = (int)($results['count'] ?? 0);
         <?php endif; ?>
       </form>
       <a class="btn" href="/">Nowe wyszukiwanie</a>
+      <?php if ($anySellable): ?>
+        <a class="btn" href="https://www.e-podroznik.pl/">Otwórz e‑podroznik.pl</a>
+      <?php endif; ?>
     </div>
   </div>
 
@@ -50,7 +65,6 @@ $count = (int)($results['count'] ?? 0);
         $toDate = (string)($r['to']['date'] ?? '');
         $duration = (string)($r['duration'] ?? '');
         $sellable = (bool)($r['sellable'] ?? false);
-        $buyUrl = \TyfloPodroznik\Html::epodroznikUrl($r['buyHref'] ?? null);
         $resId = (string)($r['resId'] ?? '');
         $segments = (int)($r['connectionsCount'] ?? 0);
         $changes = (int)($r['sort']['changes'] ?? 0);
@@ -75,9 +89,6 @@ $count = (int)($results['count'] ?? 0);
           <dd><?= $sellable ? '<span class="ok">możliwy</span>' : '<span class="warn">brak / niedostępny</span>' ?></dd>
         </dl>
         <div class="actions">
-          <?php if (is_string($buyUrl) && $buyUrl !== ''): ?>
-            <a class="btn primary" href="<?= \TyfloPodroznik\Html::e($buyUrl) ?>">Kup bilet (e‑podroznik.pl)</a>
-          <?php endif; ?>
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>
           <?php endif; ?>
