@@ -53,7 +53,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         </div>
       </fieldset>
 
-      <div class="grid-2" aria-label="Tryb">
+      <div class="grid-2">
         <fieldset>
           <legend>Wyszukuj wg</legend>
           <div class="stack">
