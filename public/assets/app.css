@@ -18,6 +18,8 @@
   --maxw: 68rem;
 }
 
+[hidden]{display:none !important;}
+
 html{font-size: var(--font-base);}
 html.ui-font-lg{--font-base: 20px;}
 html.ui-font-xl{--font-base: 22px;}
