@@ -15,17 +15,62 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
       <fieldset class="grid-2">
-        <legend>Trasa</legend>
-        <div class="field">
-          <label for="from">Z (miejsce startu)</label>
-          <input id="from" name="from" type="text" inputmode="search" autocomplete="off" required value="<?= \TyfloPodroznik\Html::e((string)($defaults['from'] ?? '')) ?>">
-          <div class="help">Wpisz miasto, przystanek, ulicę lub adres (np. „Warszawa Zachodnia”, „Kraków”).</div>
-        </div>
-        <div class="field">
-          <label for="to">Do (miejsce docelowe)</label>
-          <input id="to" name="to" type="text" inputmode="search" autocomplete="off" required value="<?= \TyfloPodroznik\Html::e((string)($defaults['to'] ?? '')) ?>">
-        </div>
-      </fieldset>
+	        <legend>Trasa</legend>
+	        <div class="field">
+	          <label for="from">Z (miejsce startu)</label>
+	          <input
+	            id="from"
+	            name="from"
+	            type="text"
+	            inputmode="search"
+	            autocomplete="off"
+	            required
+	            value="<?= \TyfloPodroznik\Html::e((string)($defaults['from'] ?? '')) ?>"
+	            role="combobox"
+	            aria-autocomplete="list"
+	            aria-expanded="false"
+	            aria-controls="from_suggestions"
+	            aria-describedby="from_help from_status"
+	            data-ep-suggest="1"
+	            data-ep-kind="SOURCE"
+	            data-ep-type="ALL"
+	            data-ep-hidden="fromV"
+	            data-ep-list="from_suggestions"
+	            data-ep-status="from_status"
+	          >
+	          <input type="hidden" id="fromV" name="fromV" value="">
+	          <div id="from_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter.</div>
+	          <div id="from_status" class="sr-only" aria-live="polite"></div>
+	          <ul id="from_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
+	        </div>
+	        <div class="field">
+	          <label for="to">Do (miejsce docelowe)</label>
+	          <input
+	            id="to"
+	            name="to"
+	            type="text"
+	            inputmode="search"
+	            autocomplete="off"
+	            required
+	            value="<?= \TyfloPodroznik\Html::e((string)($defaults['to'] ?? '')) ?>"
+	            role="combobox"
+	            aria-autocomplete="list"
+	            aria-expanded="false"
+	            aria-controls="to_suggestions"
+	            aria-describedby="to_help to_status"
+	            data-ep-suggest="1"
+	            data-ep-kind="DESTINATION"
+	            data-ep-type="ALL"
+	            data-ep-hidden="toV"
+	            data-ep-list="to_suggestions"
+	            data-ep-status="to_status"
+	          >
+	          <input type="hidden" id="toV" name="toV" value="">
+	          <div id="to_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter.</div>
+	          <div id="to_status" class="sr-only" aria-live="polite"></div>
+	          <ul id="to_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
+	        </div>
+	      </fieldset>
 
       <fieldset class="grid-2">
         <legend>Data i godzina</legend>

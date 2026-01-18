@@ -143,6 +143,44 @@ label{font-weight: 600;}
 .ok{color: var(--ok);}
 .warn{color: var(--warn);}
 
+.sr-only{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.autocomplete-list{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  max-height: 14rem;
+  overflow: auto;
+}
+.autocomplete-list li{
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.autocomplete-list li:last-child{border-bottom: none;}
+.autocomplete-list li[aria-selected="true"]{
+  background: var(--focus);
+  color: #fff;
+}
+html.ui-contrast .autocomplete-list li[aria-selected="true"]{color: #000;}
+.autocomplete-list li:hover{text-decoration: underline;}
+.autocomplete-list .ac-label{display: block; font-weight: 700;}
+.autocomplete-list .ac-info{display: block; font-size: 0.9rem; color: var(--muted);}
+html.ui-contrast .autocomplete-list li[aria-selected="true"] .ac-info{color: #000;}
+
 .field{
   display: grid;
   gap: 6px;

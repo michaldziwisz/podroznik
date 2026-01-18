@@ -16,14 +16,36 @@ $toTime = (string)($defaults['to_time'] ?? '');
     <form method="post" action="/timetable/search" class="stack" novalidate>
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
-      <fieldset>
-        <legend>Przystanek</legend>
-        <div class="field">
-          <label for="q">Miasto / przystanek</label>
-          <input id="q" name="q" type="text" inputmode="search" autocomplete="off" required value="<?= \TyfloPodroznik\Html::e($q) ?>">
-          <div class="help">Wpisz nazwę miasta lub przystanku (np. „Iława”, „Warszawa Zachodnia”).</div>
-        </div>
-      </fieldset>
+	      <fieldset>
+	        <legend>Przystanek</legend>
+	        <div class="field">
+	          <label for="q">Miasto / przystanek</label>
+	          <input
+	            id="q"
+	            name="q"
+	            type="text"
+	            inputmode="search"
+	            autocomplete="off"
+	            required
+	            value="<?= \TyfloPodroznik\Html::e($q) ?>"
+	            role="combobox"
+	            aria-autocomplete="list"
+	            aria-expanded="false"
+	            aria-controls="stop_suggestions"
+	            aria-describedby="q_help q_status"
+	            data-ep-suggest="1"
+	            data-ep-kind="SOURCE"
+	            data-ep-type="STOPS"
+	            data-ep-hidden="stopV"
+	            data-ep-list="stop_suggestions"
+	            data-ep-status="q_status"
+	          >
+	          <input type="hidden" id="stopV" name="stopV" value="">
+	          <div id="q_help" class="help">Wpisz nazwę miasta lub przystanku. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter.</div>
+	          <div id="q_status" class="sr-only" aria-live="polite"></div>
+	          <ul id="stop_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
+	        </div>
+	      </fieldset>
 
       <fieldset class="grid-2">
         <legend>Filtry (opcjonalnie)</legend>

@@ -63,6 +63,9 @@ final class App
                 case '/contact/send':
                     $this->handleContact();
                     return;
+                case '/api/suggest':
+                    $this->apiSuggest();
+                    return;
                 case '/search':
                     $this->handleSearch();
                     return;
@@ -468,6 +471,24 @@ final class App
             ]));
         }
 
+        $stopV = trim((string)($_POST['stopV'] ?? ''));
+        $stopId = $this->stopIdFromPlaceDataString($stopV);
+        if ($stopId !== null) {
+            $_SESSION['last_timetable_form'] = [
+                'q' => $params['q'],
+                'date' => $params['date'],
+                'from_time' => $params['from_time'],
+                'to_time' => $params['to_time'],
+            ];
+
+            Html::redirect(Html::url('/timetable/results', [
+                'stopId' => $stopId,
+                'date' => $params['date'],
+                'from_time' => $params['from_time'],
+                'to_time' => $params['to_time'],
+            ]));
+        }
+
         $resp = $client->suggest($params['q'], requestKind: 'SOURCE', type: 'STOPS');
         $suggestions = $this->filterStopSuggestions($resp['suggestions'] ?? []);
 
@@ -633,6 +654,15 @@ final class App
             ]));
         }
         $params['date'] = $dateNorm;
+
+        $fromV = trim((string)($_POST['fromV'] ?? ''));
+        $toV = trim((string)($_POST['toV'] ?? ''));
+        if ($this->isValidPlaceDataString($fromV) && $this->isValidPlaceDataString($toV)) {
+            $params['fromV'] = $fromV;
+            $params['toV'] = $toV;
+            $this->runSearchAndRenderResults($client, $params);
+            return;
+        }
 
         $resolved = $this->resolvePlaces($client, $params['fromQuery'], $params['toQuery']);
 
@@ -963,6 +993,149 @@ final class App
             return $path;
         }
         return $scheme . '://' . $host . $path;
+    }
+
+    private function apiSuggest(): void
+    {
+        $method = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        if (!in_array($method, ['GET', 'HEAD'], true)) {
+            $this->respondNotFound();
+            return;
+        }
+
+        $q = trim((string)($_GET['q'] ?? ''));
+        $kind = strtoupper(trim((string)($_GET['kind'] ?? 'SOURCE')));
+        if (!in_array($kind, ['SOURCE', 'DESTINATION'], true)) {
+            $kind = 'SOURCE';
+        }
+
+        $type = strtoupper(trim((string)($_GET['type'] ?? 'ALL')));
+        if (!in_array($type, ['AUTO', 'ALL', 'CITIES', 'STOPS', 'STREETS', 'ADDRESSES', 'GEOGRAPHICAL', 'LINE'], true)) {
+            $type = 'ALL';
+        }
+
+        $limit = (int)($_GET['limit'] ?? 8);
+        if ($limit < 1 || $limit > 20) {
+            $limit = 8;
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        header('X-Content-Type-Options: nosniff');
+
+        if ($q === '' || mb_strlen($q) < 2) {
+            echo json_encode([
+                'ok' => true,
+                'query' => $q,
+                'suggestions' => [],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return;
+        }
+
+        $now = time();
+        $windowSeconds = 60;
+        $maxRequestsPerWindow = 60;
+        $reqs = $_SESSION['suggest_reqs'] ?? [];
+        if (!is_array($reqs)) {
+            $reqs = [];
+        }
+        $reqs = array_values(array_filter($reqs, static fn($ts): bool => is_int($ts) && $ts > ($now - $windowSeconds)));
+        if (count($reqs) >= $maxRequestsPerWindow) {
+            http_response_code(429);
+            echo json_encode([
+                'ok' => false,
+                'error' => 'rate_limited',
+                'message' => 'Zbyt wiele zapytań o podpowiedzi. Odczekaj chwilę i spróbuj ponownie.',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return;
+        }
+        $reqs[] = $now;
+        $_SESSION['suggest_reqs'] = $reqs;
+
+        $cacheTtl = 60;
+        $cacheKey = sha1($kind . '|' . $type . '|' . $q);
+        $cache = $_SESSION['suggest_cache'] ?? [];
+        if (!is_array($cache)) {
+            $cache = [];
+        }
+
+        $cached = $cache[$cacheKey] ?? null;
+        if (is_array($cached) && isset($cached['ts'], $cached['data']) && is_int($cached['ts']) && ($now - $cached['ts']) < $cacheTtl) {
+            echo json_encode($cached['data'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return;
+        }
+
+        try {
+            $client = EpodroznikClient::fromSession();
+            $resp = $client->suggest($q, requestKind: $kind, type: $type);
+            $raw = $resp['suggestions'] ?? [];
+            $sugs = $type === 'STOPS' ? $this->filterStopSuggestions((array)$raw) : $this->filterRealSuggestions((array)$raw);
+        } catch (\Throwable) {
+            http_response_code(502);
+            echo json_encode([
+                'ok' => false,
+                'error' => 'upstream_error',
+                'message' => 'Nie udało się pobrać podpowiedzi z e‑podroznik.pl. Spróbuj ponownie.',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return;
+        }
+
+        $out = [];
+        foreach ($sugs as $s) {
+            if (!is_array($s)) {
+                continue;
+            }
+            $label = isset($s['n']) && is_string($s['n']) ? trim($s['n']) : '';
+            if ($label === '') {
+                continue;
+            }
+            $pds = isset($s['placeDataString']) && is_string($s['placeDataString']) ? trim($s['placeDataString']) : '';
+            if (!$this->isValidPlaceDataString($pds)) {
+                continue;
+            }
+            $info = '';
+            if (isset($s['cai']) && is_string($s['cai'])) {
+                $info = trim($s['cai']);
+            } elseif (isset($s['a'][0]) && is_string($s['a'][0])) {
+                $info = trim($s['a'][0]);
+            }
+            $out[] = [
+                'label' => $label,
+                'info' => $info,
+                'value' => $pds,
+            ];
+            if (count($out) >= $limit) {
+                break;
+            }
+        }
+
+        $data = [
+            'ok' => true,
+            'query' => $q,
+            'suggestions' => $out,
+        ];
+
+        $cache[$cacheKey] = [
+            'ts' => $now,
+            'data' => $data,
+        ];
+        foreach ($cache as $k => $entry) {
+            if (!is_array($entry) || !isset($entry['ts']) || !is_int($entry['ts'])) {
+                unset($cache[$k]);
+                continue;
+            }
+            if (($now - $entry['ts']) >= $cacheTtl) {
+                unset($cache[$k]);
+            }
+        }
+        $_SESSION['suggest_cache'] = $cache;
+
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    private function isValidPlaceDataString(string $placeDataString): bool
+    {
+        return (bool)preg_match('/^[a-z]{1,4}\\|\\d+$/i', trim($placeDataString));
     }
 
     private function clientIpForSygnalista(): string

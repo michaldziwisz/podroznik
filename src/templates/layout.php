@@ -9,10 +9,11 @@
 <html lang="pl" class="<?= \TyfloPodroznik\Html::e($ui->htmlClass()) ?>">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= \TyfloPodroznik\Html::e($title) ?> — Podróżnik Tyflo</title>
-    <link rel="stylesheet" href="/assets/app.css">
-  </head>
+	    <meta name="viewport" content="width=device-width, initial-scale=1">
+	    <title><?= \TyfloPodroznik\Html::e($title) ?> — Podróżnik Tyflo</title>
+	    <link rel="stylesheet" href="/assets/app.css">
+	    <script src="/assets/app.js" defer></script>
+	  </head>
   <body>
     <a class="skip-link" href="#main">Przejdź do treści</a>
     <header class="site" role="banner">
