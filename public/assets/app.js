@@ -25,22 +25,114 @@
     return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
   }
 
-  function disableNativeDateTimePickersOnIOS() {
+  function proxyNativeDateTimePickersOnIOS() {
     if (!isIOS()) return;
+
     const inputs = document.querySelectorAll('input[type="date"], input[type="time"]');
     for (const input of inputs) {
       if (!(input instanceof HTMLInputElement)) continue;
+      if (!input.id) continue;
+      if (input.dataset.epPickerProxied === '1') continue;
+
       const t = (input.getAttribute('type') || '').toLowerCase();
       if (t !== 'date' && t !== 'time') continue;
-      input.dataset.epOriginalType = t;
-      input.setAttribute('type', 'text');
-      input.autocomplete = 'off';
-      input.inputMode = 'numeric';
-      if (t === 'date' && !input.placeholder) {
-        input.placeholder = 'YYYY-MM-DD';
+
+      const field = input.closest('.field');
+      const label = document.querySelector('label[for="' + input.id + '"]');
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'picker-proxy';
+      btn.id = `${input.id}_proxy`;
+      btn.dataset.epPickerFor = input.id;
+
+      const valueEl = document.createElement('span');
+      valueEl.className = 'picker-proxy-value';
+      valueEl.id = `${input.id}_proxy_value`;
+      btn.appendChild(valueEl);
+
+      if (label) {
+        if (!label.id) {
+          label.id = `${input.id}_label`;
+        }
+        btn.setAttribute('aria-labelledby', label.id + ' ' + valueEl.id);
+        label.setAttribute('for', btn.id);
+      } else {
+        btn.setAttribute('aria-labelledby', valueEl.id);
       }
-      if (t === 'time' && !input.placeholder) {
-        input.placeholder = 'HH:MM';
+
+      const describedBy = input.getAttribute('aria-describedby');
+      if (describedBy) {
+        btn.setAttribute('aria-describedby', describedBy);
+      }
+      if (input.required) {
+        btn.setAttribute('aria-required', 'true');
+      }
+
+      function updateText() {
+        const v = (input.value || '').trim();
+        if (v !== '') {
+          valueEl.textContent = v;
+          btn.classList.remove('is-empty');
+          return;
+        }
+        valueEl.textContent = t === 'date' ? 'Wybierz datę' : 'Wybierz godzinę';
+        btn.classList.add('is-empty');
+      }
+
+      function safeFocus(el) {
+        try {
+          el.focus({ preventScroll: true });
+        } catch (_) {
+          try {
+            el.focus();
+          } catch (_) {
+            // ignore
+          }
+        }
+      }
+
+      async function openPicker() {
+        try {
+          if (typeof input.showPicker === 'function') {
+            input.showPicker();
+          } else {
+            safeFocus(input);
+            input.click();
+          }
+        } catch (_) {
+          try {
+            safeFocus(input);
+            input.click();
+          } catch (_) {
+            // ignore
+          }
+        }
+      }
+
+      btn.addEventListener('click', async () => {
+        await openPicker();
+      });
+
+      input.addEventListener('change', () => {
+        updateText();
+        safeFocus(btn);
+      });
+
+      input.classList.add('picker-native');
+      input.setAttribute('aria-hidden', 'true');
+      input.setAttribute('tabindex', '-1');
+      input.dataset.epPickerProxied = '1';
+
+      updateText();
+
+      if (field && field instanceof HTMLElement) {
+        const existing = field.querySelector('#' + btn.id);
+        if (!existing) {
+          input.insertAdjacentElement('beforebegin', btn);
+        }
+      } else {
+        input.insertAdjacentElement('beforebegin', btn);
       }
     }
   }
@@ -296,7 +388,7 @@
   }
 
   function init() {
-    disableNativeDateTimePickersOnIOS();
+    proxyNativeDateTimePickersOnIOS();
     const inputs = document.querySelectorAll('input[data-ep-suggest="1"]');
     for (const input of inputs) {
       if (input instanceof HTMLInputElement) {
