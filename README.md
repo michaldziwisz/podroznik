@@ -17,6 +17,16 @@ Otwórz `http://127.0.0.1:8080/`.
 - To nie jest oficjalny produkt e‑podróżnik.pl i może przestać działać, jeśli zmienią endpointy lub format HTML.
 - Ta aplikacja nie implementuje zakupu biletów — skupia się na dostępnej wyszukiwarce i prezentacji wyników/szczegółów.
 
+## Monitoring (opcjonalnie)
+
+W `scripts/monitoring/` jest prosty check upstreamu (podpowiedzi, wyszukiwanie, rozkład). Przy wykryciu błędu może automatycznie założyć issue w repo (wymaga zalogowanego `gh` na maszynie).
+
+Przykład crona:
+
+```cron
+*/5 * * * * /var/www/podroznik.tyflo.eu.org/scripts/monitoring/monitor.sh
+```
+
 ## Zgłoszenia (Sygnalista)
 
 W aplikacji jest widok kontaktowy: `/contact`. Może wysyłać zgłoszenia do systemu „sygnalista” (Cloudflare Worker `POST /v1/report`), który tworzy issue na GitHub.
