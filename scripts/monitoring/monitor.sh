@@ -3,12 +3,25 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 CHECK="${ROOT_DIR}/scripts/monitoring/check_upstream.php"
+REPORT="${ROOT_DIR}/scripts/monitoring/report_to_sygnalista.php"
 LOCK_FILE="/tmp/podroznik-monitor.lock"
+STATE_FILE="/tmp/podroznik-monitor.state"
 LOG_FILE="${PODROZNIK_MONITOR_LOG:-/home/ubuntu/podroznik-monitor.log}"
 
-REPO="michaldziwisz/podroznik"
-LABEL="monitoring"
 TITLE="Monitoring: problem z integracją e‑podroznik.pl"
+
+HOME_DIR="${HOME:-/home/ubuntu}"
+ENV_FILE="${PODROZNIK_MONITOR_ENV_FILE:-${HOME_DIR}/.config/podroznik/monitor.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
+if [[ -z "${SYGNALISTA_APP_CHANNEL:-}" ]]; then
+  export SYGNALISTA_APP_CHANNEL="monitoring"
+fi
 
 mkdir -p "$(dirname -- "$LOG_FILE")"
 
@@ -25,6 +38,14 @@ status=$?
 set -e
 
 if [[ $status -eq 0 ]]; then
+  if [[ -f "$STATE_FILE" ]]; then
+    {
+      echo "[$timestamp] RECOVERED"
+      cat "$STATE_FILE" 2>/dev/null || true
+      echo
+    } >>"$LOG_FILE"
+    rm -f "$STATE_FILE" || true
+  fi
   exit 0
 fi
 
@@ -46,24 +67,11 @@ fi
 output="$output"$'\n\n'"--- retry ---"$'\n'"$output_retry"
 status="$status_retry"
 
-{
-  echo "[$timestamp] FAIL (exit=$status)"
-  echo "$output"
-  echo
-} >>"$LOG_FILE"
-
-# Ensure label exists (ignore errors if already exists / no perms).
-/usr/bin/gh label create "$LABEL" --repo "$REPO" --description "Automatyczne alerty z monitoringu" --color "BFD4F2" >/dev/null 2>&1 || true
-
-existing="$(
-  /usr/bin/gh issue list --repo "$REPO" --state open --label "$LABEL" --json number --jq '.[0].number' 2>/dev/null || true
-)"
-
-if [[ -n "${existing:-}" ]]; then
+if [[ -f "$STATE_FILE" ]]; then
   exit 0
 fi
 
-body=$(
+description=$(
   cat <<EOF
 Automatyczny alert z monitoringu (cron) — wykryto problem z integracją/scrapingiem e‑podroznik.pl.
 
@@ -77,8 +85,33 @@ $output
 EOF
 )
 
-if /usr/bin/gh issue create --repo "$REPO" --title "$TITLE" --label "$LABEL" --body "$body" >/dev/null; then
+{
+  echo "[$timestamp] FAIL (exit=$status)"
+  echo "$output"
+  echo
+} >>"$LOG_FILE"
+
+set +e
+report_resp="$(printf '%s' "$description" | /usr/bin/php "$REPORT" --title "$TITLE" --description-stdin 2>&1)"
+report_status=$?
+set -e
+
+if [[ $report_status -ne 0 ]]; then
+  {
+    echo "[$timestamp] SYGNALISTA_FAIL (exit=$report_status)"
+    echo "$report_resp"
+    echo
+  } >>"$LOG_FILE"
   exit 0
 fi
 
-/usr/bin/gh issue create --repo "$REPO" --title "$TITLE" --body "$body" >/dev/null || true
+{
+  echo "[$timestamp] REPORTED"
+  echo "$report_resp"
+  echo
+} >>"$LOG_FILE"
+
+{
+  echo "reported_at=$timestamp"
+  echo "$report_resp"
+} >"$STATE_FILE"

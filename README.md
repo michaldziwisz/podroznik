@@ -19,13 +19,15 @@ Otwórz `http://127.0.0.1:8080/`.
 
 ## Monitoring (opcjonalnie)
 
-W `scripts/monitoring/` jest prosty check upstreamu (podpowiedzi, wyszukiwanie, rozkład). Przy wykryciu błędu może automatycznie założyć issue w repo (wymaga zalogowanego `gh` na maszynie).
+W `scripts/monitoring/` jest prosty check upstreamu (podpowiedzi, wyszukiwanie, rozkład). Przy wykryciu błędu skrypt wysyła zgłoszenie do „sygnalisty”, który tworzy issue (i może wysyłać powiadomienia, np. na Telegram).
 
 Przykład crona:
 
 ```cron
 */5 * * * * /var/www/podroznik.tyflo.eu.org/scripts/monitoring/monitor.sh
 ```
+
+Konfigurację sygnalisty dla crona możesz podać przez plik `~/.config/podroznik/monitor.env` (ścieżkę da się zmienić zmienną `PODROZNIK_MONITOR_ENV_FILE`). Ten plik **nie** jest w repo, więc można tam trzymać np. `SYGNALISTA_APP_TOKEN`.
 
 ## Zgłoszenia (Sygnalista)
 
