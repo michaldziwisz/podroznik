@@ -30,6 +30,7 @@ final class TimetableRules
             }
 
             $outDeps = [];
+            $seen = [];
             foreach ($deps as $d) {
                 if (!is_array($d)) {
                     continue;
@@ -45,6 +46,24 @@ final class TimetableRules
                 if ($dateYmd !== '' && !self::runsOnDate($infoItems, $dateYmd)) {
                     continue;
                 }
+
+                $time = trim((string)($d['time'] ?? ''));
+                $carrier = trim((string)($d['carrier'] ?? ''));
+                $validity = trim((string)($d['validity'] ?? ''));
+                $notes = $d['notes'] ?? [];
+                if (!is_array($notes)) {
+                    $notes = [];
+                }
+                $notes = array_values(array_filter(array_map(static function ($v): string {
+                    return trim((string)$v);
+                }, $notes), static fn(string $v): bool => $v !== ''));
+
+                // Dedupe exact duplicates as displayed to the user.
+                $key = $time . "\n" . $carrier . "\n" . $validity . "\n" . implode("\n", $notes);
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
 
                 $outDeps[] = $d;
             }
