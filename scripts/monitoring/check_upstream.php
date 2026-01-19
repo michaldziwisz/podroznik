@@ -2,8 +2,16 @@
 <?php
 declare(strict_types=1);
 
-// Reuse the same session between runs (prevents creating tons of cookie-jar temp files).
+// Reuse the same session between runs (prevents creating tons of cookie-jar temp files),
+// but keep it separate from the web app session storage.
 if (PHP_SAPI === 'cli' && session_status() !== PHP_SESSION_ACTIVE) {
+    $savePath = sys_get_temp_dir() . '/podroznik-monitor-sessions';
+    if (!is_dir($savePath)) {
+        @mkdir($savePath, 0o700, true);
+    }
+    if (is_dir($savePath) && is_writable($savePath)) {
+        ini_set('session.save_path', $savePath);
+    }
     session_id('podroznik-monitor');
 }
 
@@ -161,4 +169,3 @@ final class UpstreamCheck
 
 $check = new UpstreamCheck();
 exit($check->run());
-
