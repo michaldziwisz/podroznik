@@ -28,6 +28,24 @@ if [[ $status -eq 0 ]]; then
   exit 0
 fi
 
+sleep 20
+set +e
+output_retry="$(/usr/bin/php "$CHECK" 2>&1)"
+status_retry=$?
+set -e
+
+if [[ $status_retry -eq 0 ]]; then
+  {
+    echo "[$timestamp] TRANSIENT_FAIL (first_exit=$status)"
+    echo "$output"
+    echo
+  } >>"$LOG_FILE"
+  exit 0
+fi
+
+output="$output"$'\n\n'"--- retry ---"$'\n'"$output_retry"
+status="$status_retry"
+
 {
   echo "[$timestamp] FAIL (exit=$status)"
   echo "$output"
