@@ -25,115 +25,116 @@
     return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1;
   }
 
-  function proxyNativeDateTimePickersOnIOS() {
+  function normalizeDateValue(value) {
+    const v = normalizeWhitespace(value);
+    if (!v) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    const m1 = v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (m1) {
+      const d = String(m1[1]).padStart(2, '0');
+      const mo = String(m1[2]).padStart(2, '0');
+      const y = String(m1[3]).padStart(4, '0');
+      return `${y}-${mo}-${d}`;
+    }
+    const m2 = v.match(/^(\d{4})(\d{2})(\d{2})$/);
+    if (m2) {
+      return `${m2[1]}-${m2[2]}-${m2[3]}`;
+    }
+    return v;
+  }
+
+  function normalizeTimeValue(value) {
+    const v = normalizeWhitespace(value).replace(/[.,]/g, ':');
+    if (!v) return '';
+    const m1 = v.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (m1) {
+      const h = String(parseInt(m1[1], 10)).padStart(2, '0');
+      const min = String(parseInt(m1[2], 10)).padStart(2, '0');
+      return `${h}:${min}`;
+    }
+    const m2 = v.match(/^(\d{1,4})$/);
+    if (m2) {
+      const digits = m2[1];
+      if (digits.length <= 2) {
+        const h = String(parseInt(digits, 10)).padStart(2, '0');
+        return `${h}:00`;
+      }
+      const h = String(parseInt(digits.slice(0, -2), 10)).padStart(2, '0');
+      const min = String(parseInt(digits.slice(-2), 10)).padStart(2, '0');
+      return `${h}:${min}`;
+    }
+    return v;
+  }
+
+  function iosDateTimePickersOnActivate() {
     if (!isIOS()) return;
 
     const inputs = document.querySelectorAll('input[type="date"], input[type="time"]');
     for (const input of inputs) {
       if (!(input instanceof HTMLInputElement)) continue;
-      if (!input.id) continue;
-      if (input.dataset.epPickerProxied === '1') continue;
+      if (input.dataset.epIosDateTime === '1') continue;
 
-      const t = (input.getAttribute('type') || '').toLowerCase();
-      if (t !== 'date' && t !== 'time') continue;
+      const nativeType = (input.getAttribute('type') || '').toLowerCase();
+      if (nativeType !== 'date' && nativeType !== 'time') continue;
 
-      const field = input.closest('.field');
-      const label = document.querySelector('label[for="' + input.id + '"]');
+      input.dataset.epIosDateTime = '1';
+      input.dataset.epIosNativeType = nativeType;
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'picker-proxy';
-      btn.id = `${input.id}_proxy`;
-      btn.dataset.epPickerFor = input.id;
+      input.setAttribute('type', 'text');
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      input.inputMode = 'numeric';
 
-      const valueEl = document.createElement('span');
-      valueEl.className = 'picker-proxy-value';
-      valueEl.id = `${input.id}_proxy_value`;
-      btn.appendChild(valueEl);
+      let inNative = false;
 
-      if (label) {
-        if (!label.id) {
-          label.id = `${input.id}_label`;
-        }
-        btn.setAttribute('aria-labelledby', label.id + ' ' + valueEl.id);
-        label.setAttribute('for', btn.id);
-      } else {
-        btn.setAttribute('aria-labelledby', valueEl.id);
+      function toNative() {
+        if (inNative) return;
+        inNative = true;
+
+        const raw = (input.value || '').trim();
+        const normalized = nativeType === 'date' ? normalizeDateValue(raw) : normalizeTimeValue(raw);
+
+        input.setAttribute('type', nativeType);
+        input.value = normalized;
       }
 
-      const describedBy = input.getAttribute('aria-describedby');
-      if (describedBy) {
-        btn.setAttribute('aria-describedby', describedBy);
-      }
-      if (input.required) {
-        btn.setAttribute('aria-required', 'true');
-      }
-
-      function updateText() {
-        const v = (input.value || '').trim();
-        if (v !== '') {
-          valueEl.textContent = v;
-          btn.classList.remove('is-empty');
-          return;
-        }
-        valueEl.textContent = t === 'date' ? 'Wybierz datę' : 'Wybierz godzinę';
-        btn.classList.add('is-empty');
+      function toText() {
+        if (!inNative) return;
+        inNative = false;
+        const v = input.value;
+        input.setAttribute('type', 'text');
+        input.value = v;
       }
 
-      function safeFocus(el) {
-        try {
-          el.focus({ preventScroll: true });
-        } catch (_) {
-          try {
-            el.focus();
-          } catch (_) {
-            // ignore
-          }
-        }
-      }
+      // Switch before the user "click" lands, so native UI opens as a real interaction.
+      input.addEventListener('pointerdown', () => {
+        toNative();
+      });
+      input.addEventListener('touchstart', () => {
+        toNative();
+      }, { passive: true });
+      input.addEventListener('mousedown', () => {
+        toNative();
+      });
 
-      async function openPicker() {
+      input.addEventListener('click', () => {
+        toNative();
         try {
           if (typeof input.showPicker === 'function') {
             input.showPicker();
-          } else {
-            safeFocus(input);
-            input.click();
           }
         } catch (_) {
-          try {
-            safeFocus(input);
-            input.click();
-          } catch (_) {
-            // ignore
-          }
+          // ignore
         }
-      }
-
-      btn.addEventListener('click', async () => {
-        await openPicker();
       });
 
       input.addEventListener('change', () => {
-        updateText();
-        safeFocus(btn);
+        window.setTimeout(() => toText(), 0);
       });
 
-      input.classList.add('picker-native');
-      input.setAttribute('aria-hidden', 'true');
-      input.setAttribute('tabindex', '-1');
-      input.dataset.epPickerProxied = '1';
-
-      updateText();
-
-      if (field && field instanceof HTMLElement) {
-        const existing = field.querySelector('#' + btn.id);
-        if (!existing) {
-          input.insertAdjacentElement('beforebegin', btn);
-        }
-      } else {
-        input.insertAdjacentElement('beforebegin', btn);
-      }
+      input.addEventListener('blur', () => {
+        window.setTimeout(() => toText(), 300);
+      });
     }
   }
 
@@ -388,7 +389,7 @@
   }
 
   function init() {
-    proxyNativeDateTimePickersOnIOS();
+    iosDateTimePickersOnActivate();
     const inputs = document.querySelectorAll('input[data-ep-suggest="1"]');
     for (const input of inputs) {
       if (input instanceof HTMLInputElement) {
