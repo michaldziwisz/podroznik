@@ -59,5 +59,8 @@ $output
 EOF
 )
 
-/usr/bin/gh issue create --repo "$REPO" --title "$TITLE" --label "$LABEL" --body "$body" >/dev/null || true
+if /usr/bin/gh issue create --repo "$REPO" --title "$TITLE" --label "$LABEL" --body "$body" >/dev/null; then
+  exit 0
+fi
 
+/usr/bin/gh issue create --repo "$REPO" --title "$TITLE" --body "$body" >/dev/null || true
