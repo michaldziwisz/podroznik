@@ -35,12 +35,33 @@ final class UpstreamCheck
 
         try {
             $client = EpodroznikClient::fromSession();
-
-            $this->checkSuggest($client);
-            $this->checkSearch($client);
-            $this->checkTimetable($client);
         } catch (\Throwable $e) {
-            $this->errors[] = 'fatal: ' . $this->msg($e);
+            $this->errors[] = 'init: ' . $this->msg($e);
+            $client = null;
+        }
+
+        if ($client instanceof EpodroznikClient) {
+            try {
+                $this->checkSuggest($client);
+            } catch (\Throwable $e) {
+                $this->errors[] = 'suggest: ' . $this->msg($e);
+            }
+        }
+
+        if ($this->errors === [] && $client instanceof EpodroznikClient) {
+            try {
+                $this->checkSearch($client);
+            } catch (\Throwable $e) {
+                $this->errors[] = 'search: ' . $this->msg($e);
+            }
+        }
+
+        if ($this->errors === [] && $client instanceof EpodroznikClient) {
+            try {
+                $this->checkTimetable($client);
+            } catch (\Throwable $e) {
+                $this->errors[] = 'timetable: ' . $this->msg($e);
+            }
         }
 
         $elapsedMs = (int)round((microtime(true) - $startedAt) * 1000);
@@ -73,8 +94,7 @@ final class UpstreamCheck
         $resp = $client->suggest('Warszawa', 'SOURCE');
         $suggestions = $resp['suggestions'] ?? null;
         if (!is_array($suggestions) || $suggestions === []) {
-            $this->errors[] = 'suggest: empty suggestions for "Warszawa"';
-            return;
+            throw new \RuntimeException('empty suggestions for "Warszawa"');
         }
         $this->info[] = 'suggest: ok (count=' . count($suggestions) . ')';
     }
@@ -98,8 +118,7 @@ final class UpstreamCheck
         $results = $parser->parseResultsPageHtml($html);
         $count = (int)($results['count'] ?? 0);
         if ($count < 1) {
-            $this->errors[] = 'search: parsed 0 results for Warszawa → Łódź on ' . $date;
-            return;
+            throw new \RuntimeException('parsed 0 results for Warszawa → Łódź on ' . $date);
         }
         $this->info[] = 'search: ok (count=' . $count . ', date=' . $date . ')';
     }
@@ -118,8 +137,7 @@ final class UpstreamCheck
         $destCount = is_array($tt['destinations'] ?? null) ? count($tt['destinations']) : 0;
 
         if ($name === '' || $currentStopId === '') {
-            $this->errors[] = 'timetable: parsed empty stop name/stopId for stopId=' . $stopId;
-            return;
+            throw new \RuntimeException('parsed empty stop name/stopId for stopId=' . $stopId);
         }
         $this->info[] = 'timetable: ok (stop="' . $name . '", destinations=' . $destCount . ')';
     }

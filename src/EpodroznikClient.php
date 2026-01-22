@@ -305,9 +305,17 @@ final class EpodroznikClient
         curl_setopt_array($ch, $opts);
         $resp = curl_exec($ch);
         if ($resp === false) {
-            $err = curl_error($ch);
+            $errno = curl_errno($ch);
+            $err = trim((string)curl_error($ch));
+            if ($err === '') {
+                $err = trim((string)curl_strerror($errno));
+            }
             curl_close($ch);
-            throw new \RuntimeException('Błąd połączenia z e-podroznik.pl: ' . $err);
+            $suffix = '';
+            if ($errno !== 0) {
+                $suffix = ' (errno ' . $errno . ')';
+            }
+            throw new \RuntimeException('Błąd połączenia z e-podroznik.pl: ' . ($err !== '' ? $err : 'unknown error') . $suffix);
         }
         $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
