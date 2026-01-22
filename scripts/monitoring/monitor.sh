@@ -5,6 +5,7 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 CHECK="${ROOT_DIR}/scripts/monitoring/check_upstream.php"
 REPORT="${ROOT_DIR}/scripts/monitoring/report_to_sygnalista.php"
 LOCK_FILE="/tmp/podroznik-monitor.lock"
+PENDING_FILE="/tmp/podroznik-monitor.pending"
 STATE_FILE="/tmp/podroznik-monitor.state"
 LOG_FILE="${PODROZNIK_MONITOR_LOG:-/home/ubuntu/podroznik-monitor.log}"
 
@@ -46,6 +47,7 @@ if [[ $status -eq 0 ]]; then
     } >>"$LOG_FILE"
     rm -f "$STATE_FILE" || true
   fi
+  rm -f "$PENDING_FILE" || true
   exit 0
 fi
 
@@ -64,12 +66,60 @@ if [[ $status_retry -eq 0 ]]; then
   exit 0
 fi
 
+error_kind="$(printf '%s\n' "$output_retry" | awk -F= '/^error_kind=/{print $2; exit}')"
+if [[ -z "${error_kind:-}" ]]; then
+  error_kind="unknown"
+fi
+
 output="$output"$'\n\n'"--- retry ---"$'\n'"$output_retry"
 status="$status_retry"
 
 if [[ -f "$STATE_FILE" ]]; then
   exit 0
 fi
+
+threshold=2
+if [[ "$error_kind" == "parser" ]]; then
+  threshold=1
+fi
+
+pending_count=0
+pending_kind=""
+pending_first="$timestamp"
+if [[ -f "$PENDING_FILE" ]]; then
+  pending_count="$(awk -F= '/^count=/{print $2; exit}' "$PENDING_FILE" 2>/dev/null || true)"
+  pending_kind="$(awk -F= '/^kind=/{print $2; exit}' "$PENDING_FILE" 2>/dev/null || true)"
+  pending_first="$(awk -F= '/^first=/{print $2; exit}' "$PENDING_FILE" 2>/dev/null || true)"
+fi
+if [[ -z "${pending_first:-}" ]]; then
+  pending_first="$timestamp"
+fi
+if [[ -z "${pending_count:-}" || ! "$pending_count" =~ ^[0-9]+$ ]]; then
+  pending_count=0
+fi
+if [[ "${pending_kind:-}" != "$error_kind" ]]; then
+  pending_count=0
+  pending_first="$timestamp"
+fi
+pending_count=$((pending_count + 1))
+
+{
+  echo "count=$pending_count"
+  echo "kind=$error_kind"
+  echo "first=$pending_first"
+  echo "last=$timestamp"
+} >"$PENDING_FILE"
+
+if [[ $pending_count -lt $threshold ]]; then
+  {
+    echo "[$timestamp] PENDING_FAIL (count=$pending_count threshold=$threshold kind=$error_kind)"
+    echo "$output"
+    echo
+  } >>"$LOG_FILE"
+  exit 0
+fi
+
+rm -f "$PENDING_FILE" || true
 
 description=$(
   cat <<EOF

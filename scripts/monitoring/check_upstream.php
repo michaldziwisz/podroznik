@@ -29,6 +29,8 @@ final class UpstreamCheck
     /** @var list<string> */
     private array $info = [];
 
+    private string $errorKind = 'unknown';
+
     public function run(): int
     {
         $startedAt = microtime(true);
@@ -36,7 +38,7 @@ final class UpstreamCheck
         try {
             $client = EpodroznikClient::fromSession();
         } catch (\Throwable $e) {
-            $this->errors[] = 'init: ' . $this->msg($e);
+            $this->addError('init', $e);
             $client = null;
         }
 
@@ -44,7 +46,7 @@ final class UpstreamCheck
             try {
                 $this->checkSuggest($client);
             } catch (\Throwable $e) {
-                $this->errors[] = 'suggest: ' . $this->msg($e);
+                $this->addError('suggest', $e);
             }
         }
 
@@ -52,7 +54,7 @@ final class UpstreamCheck
             try {
                 $this->checkSearch($client);
             } catch (\Throwable $e) {
-                $this->errors[] = 'search: ' . $this->msg($e);
+                $this->addError('search', $e);
             }
         }
 
@@ -60,7 +62,7 @@ final class UpstreamCheck
             try {
                 $this->checkTimetable($client);
             } catch (\Throwable $e) {
-                $this->errors[] = 'timetable: ' . $this->msg($e);
+                $this->addError('timetable', $e);
             }
         }
 
@@ -69,6 +71,7 @@ final class UpstreamCheck
         if ($this->errors !== []) {
             fwrite(STDERR, "FAILED\n");
             fwrite(STDERR, "elapsed_ms={$elapsedMs}\n");
+            fwrite(STDERR, "error_kind={$this->errorKind}\n");
             foreach ($this->errors as $line) {
                 fwrite(STDERR, $line . "\n");
             }
@@ -182,6 +185,57 @@ final class UpstreamCheck
             $m = get_class($e);
         }
         return $m;
+    }
+
+    private function addError(string $step, \Throwable $e): void
+    {
+        $this->errors[] = $step . ': ' . $this->msg($e);
+        $this->errorKind = $this->mergeKind($this->errorKind, $this->classify($e));
+    }
+
+    private function mergeKind(string $a, string $b): string
+    {
+        $prio = [
+            'unknown' => 0,
+            'network' => 1,
+            'upstream' => 2,
+            'parser' => 3,
+        ];
+        $pa = $prio[$a] ?? 0;
+        $pb = $prio[$b] ?? 0;
+        return $pb > $pa ? $b : $a;
+    }
+
+    private function classify(\Throwable $e): string
+    {
+        $m = $e->getMessage();
+        $m = is_string($m) ? $m : '';
+        $m = mb_strtolower($m);
+
+        if (
+            str_contains($m, 'błąd połączenia z e-podroznik.pl')
+            || str_contains($m, 'failed to connect')
+            || str_contains($m, 'ssl')
+            || str_contains($m, 'timed out')
+            || str_contains($m, 'timeout')
+        ) {
+            return 'network';
+        }
+
+        if (str_contains($m, 'e-podroznik.pl zwrócił błąd http')) {
+            return 'upstream';
+        }
+
+        if (
+            str_contains($m, 'pusta odpowiedź')
+            || str_contains($m, 'nie znaleziono danych')
+            || str_contains($m, 'nie udało się pobrać tabtoken')
+            || str_contains($m, 'domdocument')
+        ) {
+            return 'parser';
+        }
+
+        return 'unknown';
     }
 }
 
