@@ -404,7 +404,7 @@
         // Fallback: let the form submit normally (opens search results), and the user can click "Kup bilet" there.
         let win = null;
         try {
-          win = window.open('about:blank', winName, 'noopener');
+          win = window.open('about:blank', winName);
         } catch (_) {
           win = null;
         }
@@ -413,7 +413,12 @@
           return;
         }
 
-        ev.preventDefault();
+        // Prevent reverse-tabnabbing: keep the window reference, but detach opener.
+        try {
+          win.opener = null;
+        } catch (_) {
+          // ignore
+        }
 
         let navigated = false;
         const navigateToTicket = () => {
@@ -453,15 +458,8 @@
           // ignore
         }
 
-        // Submit search into the named window to establish the session in e-podroznik.pl.
+        // Ensure the browser submits the POST into the named window (user-initiated submit).
         form.target = winName;
-        try {
-          form.submit();
-        } catch (_) {
-          // fallback: try opening ticket anyway
-          navigateToTicket();
-          return;
-        }
       });
     }
   }
