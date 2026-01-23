@@ -5,10 +5,6 @@ $turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
 $turnstileRequired = (bool)($turnstile['required'] ?? false);
 $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 $count = (int)($results['count'] ?? 0);
-$tabToken = (string)($results['tabToken'] ?? '');
-if ($tabToken === '' && isset($_SESSION['ep_tabToken']) && is_string($_SESSION['ep_tabToken'])) {
-  $tabToken = trim($_SESSION['ep_tabToken']);
-}
 $anySellable = false;
 foreach (($results['results'] ?? []) as $r) {
   if (is_array($r) && (($r['sellable'] ?? false) === true)) {
@@ -32,6 +28,7 @@ foreach (($results['results'] ?? []) as $r) {
     <?php if ($anySellable): ?>
       <div class="help">
         Zakup biletów odbywa się w serwisie e‑podroznik.pl. Połączenia z opcją zakupu są oznaczone „Bilet online: możliwy”.
+        e‑podroznik.pl nie udostępnia stabilnego linku do zakupu dla pojedynczego wyniku (wymaga ich wewnętrznej sesji), więc zakup trzeba dokończyć bezpośrednio u nich.
       </div>
     <?php endif; ?>
     <div class="actions">
@@ -70,14 +67,6 @@ foreach (($results['results'] ?? []) as $r) {
         $duration = (string)($r['duration'] ?? '');
         $sellable = (bool)($r['sellable'] ?? false);
         $resId = (string)($r['resId'] ?? '');
-        $buyUrl = null;
-        if ($sellable) {
-          if ($resId !== '' && $tabToken !== '') {
-            $buyUrl = \TyfloPodroznik\Html::epodroznikBuyTicketUrl($resId, $tabToken);
-          } else {
-            $buyUrl = \TyfloPodroznik\Html::epodroznikUrl($r['buyHref'] ?? null);
-          }
-        }
         $segments = (int)($r['connectionsCount'] ?? 0);
         $changes = (int)($r['sort']['changes'] ?? 0);
         if ($segments > 0 && $changes === 0) {
@@ -103,9 +92,6 @@ foreach (($results['results'] ?? []) as $r) {
         <div class="actions">
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>
-          <?php endif; ?>
-          <?php if ($buyUrl !== null): ?>
-            <a class="btn" href="<?= \TyfloPodroznik\Html::e($buyUrl) ?>" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Kup bilet (e‑podroznik.pl)</a>
           <?php endif; ?>
         </div>
       </article>

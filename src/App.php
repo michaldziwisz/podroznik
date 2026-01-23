@@ -837,12 +837,10 @@ final class App
             Html::redirect('/results#results');
         }
 
-        $buyUrl = $this->buyUrlForResId($id);
         $this->layout('Szczegóły trasy', $this->view->render('result', [
             'csrf' => Csrf::token(),
             'id' => $id,
             'details' => $details,
-            'buyUrl' => $buyUrl ?? '',
         ]));
     }
 
@@ -874,60 +872,6 @@ final class App
             'time' => (string)(Input::normalizeTimeHm((string)($params['time'] ?? '')) ?? ''),
         ];
         Html::redirect('/results');
-    }
-
-    private function buyUrlForResId(string $resId): ?string
-    {
-        $resId = trim($resId);
-        if ($resId === '') {
-            return null;
-        }
-
-        $last = $_SESSION['last_results'] ?? null;
-        if (!is_array($last)) {
-            return null;
-        }
-
-        $list = $last['results'] ?? null;
-        if (!is_array($list)) {
-            return null;
-        }
-
-        $tabToken = '';
-        if (isset($last['tabToken']) && is_string($last['tabToken'])) {
-            $tabToken = trim($last['tabToken']);
-        }
-        if ($tabToken === '' && isset($_SESSION['ep_tabToken']) && is_string($_SESSION['ep_tabToken'])) {
-            $tabToken = trim($_SESSION['ep_tabToken']);
-        }
-
-        foreach ($list as $r) {
-            if (!is_array($r)) {
-                continue;
-            }
-            if (($r['resId'] ?? null) !== $resId) {
-                continue;
-            }
-            if (($r['sellable'] ?? false) !== true) {
-                return null;
-            }
-            $buyHref = $r['buyHref'] ?? null;
-            $buyUrl = is_string($buyHref) ? Html::epodroznikUrl($buyHref) : null;
-            if (
-                $tabToken === ''
-                && is_string($buyUrl)
-                && preg_match('/[?&]tabToken=([0-9a-f]{32})/i', $buyUrl, $m) === 1
-            ) {
-                $tabToken = (string)$m[1];
-            }
-
-            if ($tabToken !== '') {
-                return Html::epodroznikBuyTicketUrl($resId, $tabToken);
-            }
-            return $buyUrl;
-        }
-
-        return null;
     }
 
     private function resolvePlaces(EpodroznikClient $client, string $fromQuery, string $toQuery): array
