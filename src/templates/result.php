@@ -1,6 +1,7 @@
 <?php
 /** @var string $id */
 /** @var array $details */
+$buyUrl = isset($buyUrl) && is_string($buyUrl) ? trim($buyUrl) : '';
 ?>
 <div class="stack">
   <h1><?= \TyfloPodroznik\Html::e((string)($details['title'] ?? 'Szczegóły trasy')) ?></h1>
@@ -9,6 +10,9 @@
   <div class="actions">
     <a class="btn" href="/results#results">Wróć do wyników</a>
     <a class="btn" href="/">Nowe wyszukiwanie</a>
+    <?php if ($buyUrl !== ''): ?>
+      <a class="btn" href="<?= \TyfloPodroznik\Html::e($buyUrl) ?>" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Kup bilet (e‑podroznik.pl)</a>
+    <?php endif; ?>
   </div>
 
   <?php if (!empty($details['hints'])): ?>

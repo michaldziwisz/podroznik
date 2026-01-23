@@ -66,6 +66,7 @@ foreach (($results['results'] ?? []) as $r) {
         $duration = (string)($r['duration'] ?? '');
         $sellable = (bool)($r['sellable'] ?? false);
         $resId = (string)($r['resId'] ?? '');
+        $buyUrl = $sellable ? \TyfloPodroznik\Html::epodroznikUrl($r['buyHref'] ?? null) : null;
         $segments = (int)($r['connectionsCount'] ?? 0);
         $changes = (int)($r['sort']['changes'] ?? 0);
         if ($segments > 0 && $changes === 0) {
@@ -91,6 +92,9 @@ foreach (($results['results'] ?? []) as $r) {
         <div class="actions">
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>
+          <?php endif; ?>
+          <?php if ($buyUrl !== null): ?>
+            <a class="btn" href="<?= \TyfloPodroznik\Html::e($buyUrl) ?>" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Kup bilet (e‑podroznik.pl)</a>
           <?php endif; ?>
         </div>
       </article>

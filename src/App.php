@@ -837,10 +837,12 @@ final class App
             Html::redirect('/results#results');
         }
 
+        $buyUrl = $this->buyUrlForResId($id);
         $this->layout('Szczegóły trasy', $this->view->render('result', [
             'csrf' => Csrf::token(),
             'id' => $id,
             'details' => $details,
+            'buyUrl' => $buyUrl ?? '',
         ]));
     }
 
@@ -872,6 +874,43 @@ final class App
             'time' => (string)(Input::normalizeTimeHm((string)($params['time'] ?? '')) ?? ''),
         ];
         Html::redirect('/results');
+    }
+
+    private function buyUrlForResId(string $resId): ?string
+    {
+        $resId = trim($resId);
+        if ($resId === '') {
+            return null;
+        }
+
+        $last = $_SESSION['last_results'] ?? null;
+        if (!is_array($last)) {
+            return null;
+        }
+
+        $list = $last['results'] ?? null;
+        if (!is_array($list)) {
+            return null;
+        }
+
+        foreach ($list as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+            if (($r['resId'] ?? null) !== $resId) {
+                continue;
+            }
+            if (($r['sellable'] ?? false) !== true) {
+                return null;
+            }
+            $buyHref = $r['buyHref'] ?? null;
+            if (!is_string($buyHref)) {
+                return null;
+            }
+            return Html::epodroznikUrl($buyHref);
+        }
+
+        return null;
     }
 
     private function resolvePlaces(EpodroznikClient $client, string $fromQuery, string $toQuery): array
