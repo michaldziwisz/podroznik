@@ -4,6 +4,11 @@
 $turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
 $turnstileRequired = (bool)($turnstile['required'] ?? false);
 $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
+$ticketHandoff = (isset($ticketHandoff) && is_array($ticketHandoff)) ? $ticketHandoff : null;
+$ticketHandoffOk = is_array($ticketHandoff)
+  && is_string($ticketHandoff['fromV'] ?? null) && $ticketHandoff['fromV'] !== ''
+  && is_string($ticketHandoff['toV'] ?? null) && $ticketHandoff['toV'] !== ''
+  && is_string($ticketHandoff['dateV'] ?? null) && $ticketHandoff['dateV'] !== '';
 $count = (int)($results['count'] ?? 0);
 $anySellable = false;
 foreach (($results['results'] ?? []) as $r) {
@@ -28,8 +33,14 @@ foreach (($results['results'] ?? []) as $r) {
     <?php if ($anySellable): ?>
       <div class="help">
         Zakup biletów odbywa się w serwisie e‑podroznik.pl. Połączenia z opcją zakupu są oznaczone „Bilet online: możliwy”.
-        e‑podroznik.pl nie udostępnia stabilnego linku do zakupu dla pojedynczego wyniku (wymaga ich wewnętrznej sesji), więc zakup trzeba dokończyć bezpośrednio u nich.
+        Przycisk „Kup bilet” otwiera e‑podroznik.pl w nowej karcie i próbuje przejść bezpośrednio do zakupu danego połączenia.
+        Jeśli to się nie uda, w nowej karcie pojawią się wyniki w e‑podroznik.pl – wtedy wybierz „Kup bilet” przy właściwym połączeniu.
       </div>
+      <?php if (!$ticketHandoffOk): ?>
+        <div class="help warn">
+          Nie udało się przygotować przekazania do zakupu biletu (brak danych ostatniego wyszukiwania). Wykonaj wyszukiwanie ponownie.
+        </div>
+      <?php endif; ?>
     <?php endif; ?>
     <div class="actions">
       <form method="post" action="/extend" class="stack" novalidate>
@@ -92,6 +103,47 @@ foreach (($results['results'] ?? []) as $r) {
         <div class="actions">
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>
+          <?php endif; ?>
+          <?php if ($ticketHandoffOk && $sellable && $resId !== ''): ?>
+            <?php
+              $tabToken = bin2hex(random_bytes(16));
+              $defineTicketUrl = 'https://www.e-podroznik.pl/public/defineTicketP.do?tabToken='
+                . rawurlencode($tabToken)
+                . '&resId=' . rawurlencode($resId)
+                . '&forward=url';
+              $searchAction = 'https://www.e-podroznik.pl/public/searchingResults.do?method=task';
+            ?>
+            <form
+              method="post"
+              action="<?= \TyfloPodroznik\Html::e($searchAction) ?>"
+              target="_blank"
+              class="ep-ticket-handoff"
+              data-ep-ticket-handoff="1"
+              data-ep-define-url="<?= \TyfloPodroznik\Html::e($defineTicketUrl) ?>"
+              data-ep-window="<?= \TyfloPodroznik\Html::e('epbuy_' . $tabToken) ?>"
+            >
+              <input type="hidden" name="tseVw" value="<?= \TyfloPodroznik\Html::e((string)($ticketHandoff['tseVw'] ?? 'regularP')) ?>">
+              <input type="hidden" name="tabToken" value="<?= \TyfloPodroznik\Html::e($tabToken) ?>">
+              <input type="hidden" name="fromV" value="<?= \TyfloPodroznik\Html::e((string)$ticketHandoff['fromV']) ?>">
+              <input type="hidden" name="toV" value="<?= \TyfloPodroznik\Html::e((string)$ticketHandoff['toV']) ?>">
+              <input type="hidden" name="tripType" value="one-way">
+              <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.fromText" value="<?= \TyfloPodroznik\Html::e((string)($ticketHandoff['fromText'] ?? '')) ?>">
+              <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.toText" value="<?= \TyfloPodroznik\Html::e((string)($ticketHandoff['toText'] ?? '')) ?>">
+              <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.dateV" value="<?= \TyfloPodroznik\Html::e((string)$ticketHandoff['dateV']) ?>">
+              <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.arrivalV" value="DEPARTURE">
+              <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.timeV" value="<?= \TyfloPodroznik\Html::e($fromTime) ?>">
+              <input type="hidden" name="minimalTimeForChangeV" value="<?= \TyfloPodroznik\Html::e((string)($ticketHandoff['minChange'] ?? '')) ?>">
+              <?php if (!empty($ticketHandoff['preferDirects'])): ?>
+                <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.preferDirects" value="true">
+              <?php endif; ?>
+              <?php if (!empty($ticketHandoff['onlyOnline'])): ?>
+                <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.focusedOnSellable" value="true">
+              <?php endif; ?>
+              <?php foreach ((array)($ticketHandoff['carrierTypes'] ?? []) as $ct): ?>
+                <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.carrierTypes" value="<?= \TyfloPodroznik\Html::e((string)$ct) ?>">
+              <?php endforeach; ?>
+              <button class="btn" type="submit">Kup bilet</button>
+            </form>
           <?php endif; ?>
         </div>
       </article>

@@ -75,6 +75,9 @@ final class App
                 case '/result':
                     $this->pageResult();
                     return;
+                case '/ticket':
+                    $this->pageTicket();
+                    return;
                 case '/extend':
                     $this->handleExtend();
                     return;
@@ -813,6 +816,7 @@ final class App
         $this->layout('Wyniki wyszukiwania', $this->view->render('results', [
             'csrf' => Csrf::token(),
             'results' => $results,
+            'ticketHandoff' => $this->ticketHandoffContext(),
             'turnstile' => $this->turnstileViewModel(),
         ]));
     }
@@ -824,6 +828,9 @@ final class App
             $this->respondNotFound();
             return;
         }
+
+        $matchedResult = $this->findResultInSession($id);
+        $sellable = is_array($matchedResult) && (($matchedResult['sellable'] ?? false) === true);
 
         try {
             $client = EpodroznikClient::fromSession();
@@ -841,6 +848,41 @@ final class App
             'csrf' => Csrf::token(),
             'id' => $id,
             'details' => $details,
+            'sellable' => $sellable,
+            'ticketHandoff' => $this->ticketHandoffContext(),
+            'matchedResult' => $matchedResult,
+        ]));
+    }
+
+    private function pageTicket(): void
+    {
+        $resId = trim((string)($_GET['id'] ?? ''));
+        if ($resId === '') {
+            $this->respondNotFound();
+            return;
+        }
+
+        $matchedResult = $this->findResultInSession($resId);
+        if (!is_array($matchedResult)) {
+            $this->flash('Nie znaleziono wskazanego połączenia w bieżących wynikach. Wykonaj wyszukiwanie ponownie.', 'error');
+            Html::redirect('/results#results');
+        }
+
+        if (($matchedResult['sellable'] ?? false) !== true) {
+            $this->flash('Dla tego połączenia nie jest dostępny bilet online.', 'warn');
+            Html::redirect('/result?id=' . rawurlencode($resId));
+        }
+
+        $ctx = $this->ticketHandoffContext();
+        if ($ctx === null) {
+            $this->flash('Brak danych wyszukiwania do przekazania zakupu biletu. Wykonaj wyszukiwanie ponownie.', 'error');
+            Html::redirect('/results#results');
+        }
+
+        $this->layout('Zakup biletu', $this->view->render('ticket', [
+            'resId' => $resId,
+            'matchedResult' => $matchedResult,
+            'ticketHandoff' => $ctx,
         ]));
     }
 
@@ -865,6 +907,7 @@ final class App
         $_SESSION['extend_back'] = $results['extendBackUrl'];
         $_SESSION['extend_forward'] = $results['extendForwardUrl'];
         $_SESSION['last_results'] = $results;
+        $_SESSION['last_search_params'] = $params;
         $_SESSION['last_search_form'] = [
             'from' => (string)($params['fromQuery'] ?? ''),
             'to' => (string)($params['toQuery'] ?? ''),
@@ -872,6 +915,101 @@ final class App
             'time' => (string)(Input::normalizeTimeHm((string)($params['time'] ?? '')) ?? ''),
         ];
         Html::redirect('/results');
+    }
+
+    private function ticketHandoffContext(): ?array
+    {
+        $p = $_SESSION['last_search_params'] ?? null;
+        if (!is_array($p)) {
+            return null;
+        }
+
+        $fromV = (string)($p['fromV'] ?? '');
+        $toV = (string)($p['toV'] ?? '');
+        if (!$this->isValidPlaceDataString($fromV) || !$this->isValidPlaceDataString($toV)) {
+            return null;
+        }
+
+        $fromText = trim((string)($p['fromQuery'] ?? ''));
+        $toText = trim((string)($p['toQuery'] ?? ''));
+
+        $dateYmd = Input::normalizeDateYmd((string)($p['date'] ?? ''));
+        if ($dateYmd === null) {
+            return null;
+        }
+        $dateV = $this->formatDateForEpodroznik($dateYmd);
+        if ($dateV === null) {
+            return null;
+        }
+
+        $carrierTypes = $p['carrierTypes'] ?? [];
+        if (!is_array($carrierTypes)) {
+            $carrierTypes = [];
+        }
+        $carrierTypes = array_values(array_unique(array_filter(array_map('strval', $carrierTypes), static function (string $v): bool {
+            return in_array($v, ['1', '2', '3', '4', '5'], true);
+        })));
+        if ($carrierTypes === []) {
+            $carrierTypes = ['1', '2', '3', '4', '5'];
+        }
+
+        $minChange = trim((string)($p['minChange'] ?? ''));
+        if ($minChange !== '' && !in_array($minChange, ['5', '10', '20', '30'], true)) {
+            $minChange = '';
+        }
+
+        return [
+            'tseVw' => (string)($p['tseVw'] ?? 'regularP'),
+            'fromV' => $fromV,
+            'toV' => $toV,
+            'fromText' => $fromText,
+            'toText' => $toText,
+            'dateV' => $dateV,
+            'carrierTypes' => $carrierTypes,
+            'minChange' => $minChange,
+            'preferDirects' => (bool)($p['preferDirects'] ?? false),
+            'onlyOnline' => (bool)($p['onlyOnline'] ?? false),
+        ];
+    }
+
+    private function findResultInSession(string $resId): ?array
+    {
+        $resId = trim($resId);
+        if ($resId === '') {
+            return null;
+        }
+        $last = $_SESSION['last_results'] ?? null;
+        if (!is_array($last)) {
+            return null;
+        }
+        $items = $last['results'] ?? null;
+        if (!is_array($items)) {
+            return null;
+        }
+        foreach ($items as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+            if ((string)($r['resId'] ?? '') === $resId) {
+                return $r;
+            }
+        }
+        return null;
+    }
+
+    private function formatDateForEpodroznik(string $date): ?string
+    {
+        $date = trim($date);
+        if ($date === '') {
+            return null;
+        }
+        if (preg_match('/^\\d{2}\\.\\d{2}\\.\\d{4}$/', $date)) {
+            return $date;
+        }
+        if (preg_match('/^(\\d{4})-(\\d{2})-(\\d{2})$/', $date, $m)) {
+            return $m[3] . '.' . $m[2] . '.' . $m[1];
+        }
+        return null;
     }
 
     private function resolvePlaces(EpodroznikClient $client, string $fromQuery, string $toQuery): array

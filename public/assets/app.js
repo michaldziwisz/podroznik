@@ -388,6 +388,84 @@
     }
   }
 
+  function initTicketHandoff() {
+    const forms = document.querySelectorAll('form[data-ep-ticket-handoff="1"]');
+    for (const form of forms) {
+      if (!(form instanceof HTMLFormElement)) continue;
+      if (form.dataset.epTicketHandoffInit === '1') continue;
+      form.dataset.epTicketHandoffInit = '1';
+
+      form.addEventListener('submit', (ev) => {
+        const defineUrl = normalizeWhitespace(form.dataset.epDefineUrl || '');
+        const winName = normalizeWhitespace(form.dataset.epWindow || 'epbuy');
+        if (!defineUrl) return;
+
+        // Try to keep the search (POST) and the ticket page in the same new tab/window.
+        // Fallback: let the form submit normally (opens search results), and the user can click "Kup bilet" there.
+        let win = null;
+        try {
+          win = window.open('about:blank', winName, 'noopener');
+        } catch (_) {
+          win = null;
+        }
+        if (!win) {
+          form.target = '_blank';
+          return;
+        }
+
+        ev.preventDefault();
+
+        let navigated = false;
+        const navigateToTicket = () => {
+          if (navigated) return;
+          navigated = true;
+          try {
+            win.location.href = defineUrl;
+          } catch (_) {
+            try {
+              window.open(defineUrl, winName, 'noopener');
+            } catch (_) {
+              // ignore
+            }
+          }
+        };
+
+        const isCrossOrigin = () => {
+          try {
+            // Reading location throws for cross-origin windows.
+            void win.location.href;
+            return false;
+          } catch (_) {
+            return true;
+          }
+        };
+
+        const onLoad = () => {
+          if (isCrossOrigin()) {
+            win.removeEventListener('load', onLoad);
+            navigateToTicket();
+          }
+        };
+
+        try {
+          win.addEventListener('load', onLoad);
+        } catch (_) {
+          // ignore
+        }
+
+        // Submit search into the named window to establish the session in e-podroznik.pl.
+        form.target = winName;
+        try {
+          form.submit();
+        } catch (_) {
+          // fallback: try opening ticket anyway
+          navigateToTicket();
+          return;
+        }
+      });
+    }
+  }
+
   function init() {
     iosDateTimePickersOnActivate();
     const inputs = document.querySelectorAll('input[data-ep-suggest="1"]');
@@ -396,6 +474,7 @@
         initAutocomplete(input);
       }
     }
+    initTicketHandoff();
   }
 
   if (document.readyState === 'loading') {

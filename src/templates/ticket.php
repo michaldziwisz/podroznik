@@ -1,31 +1,43 @@
 <?php
-/** @var string $id */
-/** @var array $details */
-$sellable = (isset($sellable) && $sellable === true);
+/** @var string $resId */
+/** @var array $matchedResult */
+/** @var array $ticketHandoff */
 $ticketHandoff = (isset($ticketHandoff) && is_array($ticketHandoff)) ? $ticketHandoff : null;
 $ticketHandoffOk = is_array($ticketHandoff)
   && is_string($ticketHandoff['fromV'] ?? null) && $ticketHandoff['fromV'] !== ''
   && is_string($ticketHandoff['toV'] ?? null) && $ticketHandoff['toV'] !== ''
   && is_string($ticketHandoff['dateV'] ?? null) && $ticketHandoff['dateV'] !== '';
 $matchedResult = (isset($matchedResult) && is_array($matchedResult)) ? $matchedResult : null;
-$fromTime = '';
-if (is_array($matchedResult)) {
-  $fromTime = (string)($matchedResult['from']['time'] ?? '');
-}
+
+$fromStop = is_array($matchedResult) ? (string)($matchedResult['from']['stop'] ?? '') : '';
+$toStop = is_array($matchedResult) ? (string)($matchedResult['to']['stop'] ?? '') : '';
+$fromTime = is_array($matchedResult) ? (string)($matchedResult['from']['time'] ?? '') : '';
+$toTime = is_array($matchedResult) ? (string)($matchedResult['to']['time'] ?? '') : '';
 ?>
+
 <div class="stack">
-  <h1><?= \TyfloPodroznik\Html::e((string)($details['title'] ?? 'Szczegóły trasy')) ?></h1>
-  <p class="help">ID wyniku: <?= \TyfloPodroznik\Html::e($id) ?></p>
+  <h1>Zakup biletu</h1>
+  <p class="help">
+    Zakup odbywa się w serwisie e‑podroznik.pl. Ta strona otworzy e‑podroznik.pl w nowej karcie i spróbuje przejść bezpośrednio do zakupu.
+  </p>
+
+  <?php if ($fromTime !== '' || $toTime !== '' || $fromStop !== '' || $toStop !== ''): ?>
+    <div class="card stack" role="status" aria-live="polite">
+      <strong>Wybrane połączenie:</strong>
+      <div><?= \TyfloPodroznik\Html::e(trim($fromTime . ' ' . $fromStop)) ?> → <?= \TyfloPodroznik\Html::e(trim($toTime . ' ' . $toStop)) ?></div>
+      <div class="help">ID: <?= \TyfloPodroznik\Html::e($resId) ?></div>
+    </div>
+  <?php endif; ?>
 
   <div class="actions">
     <a class="btn" href="/results#results">Wróć do wyników</a>
-    <a class="btn" href="/">Nowe wyszukiwanie</a>
-    <?php if ($sellable && $ticketHandoffOk): ?>
+    <a class="btn" href="/result?id=<?= \TyfloPodroznik\Html::e(rawurlencode($resId)) ?>">Szczegóły</a>
+    <?php if ($ticketHandoffOk): ?>
       <?php
         $tabToken = bin2hex(random_bytes(16));
         $defineTicketUrl = 'https://www.e-podroznik.pl/public/defineTicketP.do?tabToken='
           . rawurlencode($tabToken)
-          . '&resId=' . rawurlencode($id)
+          . '&resId=' . rawurlencode($resId)
           . '&forward=url';
         $searchAction = 'https://www.e-podroznik.pl/public/searchingResults.do?method=task';
       ?>
@@ -63,73 +75,9 @@ if (is_array($matchedResult)) {
         <?php foreach ((array)($ticketHandoff['carrierTypes'] ?? []) as $ct): ?>
           <input type="hidden" name="formCompositeSearchingResults.formCompositeSearcherFinalH.carrierTypes" value="<?= \TyfloPodroznik\Html::e((string)$ct) ?>">
         <?php endforeach; ?>
-        <button class="btn" type="submit">Kup bilet</button>
+        <button class="btn primary" type="submit">Otwórz zakup biletu w e‑podroznik.pl</button>
       </form>
     <?php endif; ?>
   </div>
-
-  <?php if (!empty($details['hints'])): ?>
-    <section class="card stack" aria-label="Podpowiedzi nawigacji">
-      <h2>Podpowiedzi</h2>
-      <ol>
-        <?php foreach ($details['hints'] as $h): ?>
-          <li><?= \TyfloPodroznik\Html::e((string)$h) ?></li>
-        <?php endforeach; ?>
-      </ol>
-    </section>
-  <?php endif; ?>
-
-  <?php foreach (($details['segments'] ?? []) as $i => $seg): ?>
-    <?php
-      $carrier = (string)($seg['carrier'] ?? '');
-      $line = (string)($seg['line'] ?? '');
-      $duration = (string)($seg['duration'] ?? '');
-    ?>
-    <section class="card stack" aria-label="Odcinek <?= (int)$i + 1 ?>">
-      <h2>Odcinek <?= (int)$i + 1 ?></h2>
-      <dl>
-        <?php if ($line !== ''): ?><dt>Linia / typ</dt><dd><?= \TyfloPodroznik\Html::e($line) ?></dd><?php endif; ?>
-        <?php if ($carrier !== ''): ?><dt>Przewoźnik</dt><dd><?= \TyfloPodroznik\Html::e($carrier) ?></dd><?php endif; ?>
-        <?php if ($duration !== ''): ?><dt>Czas odcinka</dt><dd><?= \TyfloPodroznik\Html::e($duration) ?></dd><?php endif; ?>
-      </dl>
-
-      <?php if (!empty($seg['remarks'])): ?>
-        <details>
-          <summary>Uwagi (np. udogodnienia)</summary>
-          <ul>
-            <?php foreach ($seg['remarks'] as $r): ?>
-              <li><?= \TyfloPodroznik\Html::e((string)$r) ?></li>
-            <?php endforeach; ?>
-          </ul>
-        </details>
-      <?php endif; ?>
-
-      <?php if (!empty($seg['stops'])): ?>
-        <details open>
-          <summary>Przystanki (<?= (int)count($seg['stops']) ?>)</summary>
-          <table>
-            <caption>Przystanki</caption>
-            <thead>
-              <tr>
-                <th scope="col">Godzina</th>
-                <th scope="col">Przystanek</th>
-                <th scope="col">Przyjazd</th>
-                <th scope="col">Odjazd</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($seg['stops'] as $s): ?>
-                <tr>
-                  <td><?= \TyfloPodroznik\Html::e((string)($s['routeTime'] ?? '')) ?></td>
-                  <td><?= \TyfloPodroznik\Html::e((string)($s['name'] ?? '')) ?></td>
-                  <td><?= \TyfloPodroznik\Html::e((string)($s['arrival'] ?? '')) ?></td>
-                  <td><?= \TyfloPodroznik\Html::e((string)($s['departure'] ?? '')) ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </details>
-      <?php endif; ?>
-    </section>
-  <?php endforeach; ?>
 </div>
+
