@@ -838,10 +838,6 @@ final class App
         }
 
         $buyUrl = $this->buyUrlForResId($id);
-        if ($buyUrl === null) {
-            $tabToken = $_SESSION['ep_tabToken'] ?? null;
-            $buyUrl = Html::epodroznikBuyTicketUrl($id, is_string($tabToken) ? $tabToken : null);
-        }
         $this->layout('Szczegóły trasy', $this->view->render('result', [
             'csrf' => Csrf::token(),
             'id' => $id,
@@ -897,6 +893,14 @@ final class App
             return null;
         }
 
+        $tabToken = '';
+        if (isset($last['tabToken']) && is_string($last['tabToken'])) {
+            $tabToken = trim($last['tabToken']);
+        }
+        if ($tabToken === '' && isset($_SESSION['ep_tabToken']) && is_string($_SESSION['ep_tabToken'])) {
+            $tabToken = trim($_SESSION['ep_tabToken']);
+        }
+
         foreach ($list as $r) {
             if (!is_array($r)) {
                 continue;
@@ -908,15 +912,19 @@ final class App
                 return null;
             }
             $buyHref = $r['buyHref'] ?? null;
-            if (is_string($buyHref)) {
-                $buyUrl = Html::epodroznikUrl($buyHref);
-                if ($buyUrl !== null) {
-                    return $buyUrl;
-                }
+            $buyUrl = is_string($buyHref) ? Html::epodroznikUrl($buyHref) : null;
+            if (
+                $tabToken === ''
+                && is_string($buyUrl)
+                && preg_match('/[?&]tabToken=([0-9a-f]{32})/i', $buyUrl, $m) === 1
+            ) {
+                $tabToken = (string)$m[1];
             }
 
-            $tabToken = $_SESSION['ep_tabToken'] ?? null;
-            return Html::epodroznikBuyTicketUrl($resId, is_string($tabToken) ? $tabToken : null);
+            if ($tabToken !== '') {
+                return Html::epodroznikBuyTicketUrl($resId, $tabToken);
+            }
+            return $buyUrl;
         }
 
         return null;

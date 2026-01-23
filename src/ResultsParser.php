@@ -29,13 +29,48 @@ final class ResultsParser
         $searchTitle = $this->text($xp, "//title");
         $h1 = $this->text($xp, "//*[self::h1 or self::h2][1]");
 
+        $tabToken = $this->extractTabToken($xp, $results);
+
         return [
             'title' => $h1 !== '' ? $h1 : ($searchTitle !== '' ? $searchTitle : 'Wyniki wyszukiwania'),
             'count' => count($results),
+            'tabToken' => $tabToken,
             'results' => $results,
             'extendBackUrl' => $extendBackUrl,
             'extendForwardUrl' => $extendForwardUrl,
         ];
+    }
+
+    private function extractTabToken(\DOMXPath $xp, array $results): string
+    {
+        $tabToken = $this->text($xp, "//input[@name='tabToken']/@value");
+        if ($tabToken !== '' && preg_match('/^[0-9a-f]{32}$/i', $tabToken) === 1) {
+            return $tabToken;
+        }
+
+        foreach ($results as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+            $buyHref = $r['buyHref'] ?? null;
+            if (!is_string($buyHref) || $buyHref === '') {
+                continue;
+            }
+            $buyHref = html_entity_decode($buyHref, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if (preg_match('/[?&]tabToken=([0-9a-f]{32})/i', $buyHref, $m) === 1) {
+                return (string)$m[1];
+            }
+        }
+
+        $scriptNode = $xp->query("//script[contains(.,'var tabToken')][1]")->item(0);
+        if ($scriptNode instanceof \DOMNode) {
+            $script = (string)($scriptNode->textContent ?? '');
+            if (preg_match('/\\}\\)\\(\"([0-9a-f]{32})\"\\)/i', $script, $m) === 1) {
+                return (string)$m[1];
+            }
+        }
+
+        return '';
     }
 
     private function parseResultNode(\DOMXPath $xp, \DOMElement $node): array

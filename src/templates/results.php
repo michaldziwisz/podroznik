@@ -5,6 +5,10 @@ $turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
 $turnstileRequired = (bool)($turnstile['required'] ?? false);
 $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 $count = (int)($results['count'] ?? 0);
+$tabToken = (string)($results['tabToken'] ?? '');
+if ($tabToken === '' && isset($_SESSION['ep_tabToken']) && is_string($_SESSION['ep_tabToken'])) {
+  $tabToken = trim($_SESSION['ep_tabToken']);
+}
 $anySellable = false;
 foreach (($results['results'] ?? []) as $r) {
   if (is_array($r) && (($r['sellable'] ?? false) === true)) {
@@ -66,9 +70,13 @@ foreach (($results['results'] ?? []) as $r) {
         $duration = (string)($r['duration'] ?? '');
         $sellable = (bool)($r['sellable'] ?? false);
         $resId = (string)($r['resId'] ?? '');
-        $buyUrl = $sellable ? \TyfloPodroznik\Html::epodroznikUrl($r['buyHref'] ?? null) : null;
-        if ($sellable && $buyUrl === null && $resId !== '') {
-          $buyUrl = \TyfloPodroznik\Html::epodroznikBuyTicketUrl($resId, $_SESSION['ep_tabToken'] ?? null);
+        $buyUrl = null;
+        if ($sellable) {
+          if ($resId !== '' && $tabToken !== '') {
+            $buyUrl = \TyfloPodroznik\Html::epodroznikBuyTicketUrl($resId, $tabToken);
+          } else {
+            $buyUrl = \TyfloPodroznik\Html::epodroznikUrl($r['buyHref'] ?? null);
+          }
         }
         $segments = (int)($r['connectionsCount'] ?? 0);
         $changes = (int)($r['sort']['changes'] ?? 0);

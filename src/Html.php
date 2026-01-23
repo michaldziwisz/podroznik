@@ -12,21 +12,19 @@ final class Html
             return null;
         }
 
-        $q = [
-            'resId' => $resId,
-            'forward' => 'url',
-        ];
+        $tabToken = is_string($tabToken) ? trim($tabToken) : '';
 
-        if (is_string($tabToken)) {
-            $tabToken = trim($tabToken);
-        } else {
-            $tabToken = '';
-        }
+        $encodedResId = rawurlencode($resId);
+        $encodedResId = str_replace('%3A', ':', $encodedResId);
+
+        $query = [];
         if ($tabToken !== '') {
-            $q = ['tabToken' => $tabToken] + $q;
+            $query[] = 'tabToken=' . rawurlencode($tabToken);
         }
+        $query[] = 'resId=' . $encodedResId;
+        $query[] = 'forward=url';
 
-        return 'https://www.e-podroznik.pl/public/defineTicketP.do?' . http_build_query($q, '', '&', PHP_QUERY_RFC3986);
+        return 'https://www.e-podroznik.pl/public/defineTicketP.do?' . implode('&', $query);
     }
 
     public static function epodroznikUrl(?string $href): ?string
