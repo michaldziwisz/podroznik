@@ -8,10 +8,20 @@ final class EpodroznikClient
     private const BASE_URL = 'https://www.e-podroznik.pl';
     private const BASE_HOST = 'www.e-podroznik.pl';
 
+    private ?\CurlHandle $curl = null;
+
     private function __construct(
         private string $cookieJar,
         private ?string $tabToken,
     ) {
+    }
+
+    public function __destruct()
+    {
+        if ($this->curl instanceof \CurlHandle) {
+            @curl_close($this->curl);
+            $this->curl = null;
+        }
     }
 
     public static function fromSession(): self
@@ -270,9 +280,15 @@ final class EpodroznikClient
         array $extraHeaders = [],
         bool $followLocation = true,
     ): string {
-        $ch = curl_init($url);
-        if ($ch === false) {
-            throw new \RuntimeException('Nie można zainicjować cURL.');
+        $ch = $this->curl;
+        if (!$ch instanceof \CurlHandle) {
+            $ch = curl_init();
+            if ($ch === false) {
+                throw new \RuntimeException('Nie można zainicjować cURL.');
+            }
+            $this->curl = $ch;
+        } else {
+            curl_reset($ch);
         }
 
         $headers = array_merge([
@@ -295,13 +311,17 @@ final class EpodroznikClient
             CURLOPT_COOKIEJAR => $this->cookieJar,
             CURLOPT_COOKIEFILE => $this->cookieJar,
             CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_URL => $url,
         ];
 
         if ($method === 'POST') {
             $opts[CURLOPT_POST] = true;
             $opts[CURLOPT_POSTFIELDS] = $this->buildFormUrlEncodedBody($data ?? []);
+        } else {
+            $opts[CURLOPT_HTTPGET] = true;
         }
 
+        $this->throttle();
         curl_setopt_array($ch, $opts);
         $resp = curl_exec($ch);
         if ($resp === false) {
@@ -310,7 +330,6 @@ final class EpodroznikClient
             if ($err === '') {
                 $err = trim((string)curl_strerror($errno));
             }
-            curl_close($ch);
             $suffix = '';
             if ($errno !== 0) {
                 $suffix = ' (errno ' . $errno . ')';
@@ -318,12 +337,77 @@ final class EpodroznikClient
             throw new \RuntimeException('Błąd połączenia z e-podroznik.pl: ' . ($err !== '' ? $err : 'unknown error') . $suffix);
         }
         $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
 
         if ($code >= 400) {
             throw new \RuntimeException('e-podroznik.pl zwrócił błąd HTTP ' . $code);
         }
+
+        $resp = (string)$resp;
+        $this->detectBlockPage($resp);
         return (string)$resp;
+    }
+
+    private function throttle(): void
+    {
+        $ms = $this->envInt('EPODROZNIK_MIN_INTERVAL_MS');
+        if ($ms <= 0) {
+            return;
+        }
+
+        $path = sys_get_temp_dir() . '/podroznik-epodroznik-rate-limit.json';
+        $fp = @fopen($path, 'c+');
+        if (!is_resource($fp)) {
+            return;
+        }
+        if (!flock($fp, LOCK_EX)) {
+            fclose($fp);
+            return;
+        }
+
+        $raw = stream_get_contents($fp);
+        $last = 0.0;
+        if (is_string($raw) && preg_match('/\"last\"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)/', $raw, $m)) {
+            $last = (float)$m[1];
+        }
+
+        $minInterval = ((float)$ms) / 1000.0;
+        $now = microtime(true);
+        $wait = ($last + $minInterval) - $now;
+        if ($wait > 0) {
+            usleep((int)round($wait * 1000000));
+        }
+
+        $now = microtime(true);
+        rewind($fp);
+        ftruncate($fp, 0);
+        fwrite($fp, json_encode(['last' => $now], JSON_UNESCAPED_SLASHES));
+        fflush($fp);
+
+        flock($fp, LOCK_UN);
+        fclose($fp);
+    }
+
+    private function envInt(string $name): int
+    {
+        $v = $_SERVER[$name] ?? getenv($name);
+        if (is_string($v)) {
+            $v = trim($v);
+        }
+        if (is_string($v) && $v !== '' && preg_match('/^-?\\d+$/', $v)) {
+            return (int)$v;
+        }
+        return 0;
+    }
+
+    private function detectBlockPage(string $html): void
+    {
+        $t = mb_strtolower($html);
+        if (str_contains($t, 'denial of service') && str_contains($t, 'blacklist')) {
+            throw new \RuntimeException('e‑podroznik.pl blokuje zapytania z tego IP (ochrona DDoS / blacklist). Spróbuj ponownie później.');
+        }
+        if (str_contains($t, 'dos') && str_contains($t, 'attack') && str_contains($t, 'detected')) {
+            throw new \RuntimeException('e‑podroznik.pl blokuje zapytania z tego IP (ochrona DDoS). Spróbuj ponownie później.');
+        }
     }
 
     private function buildFormUrlEncodedBody(array $data): string

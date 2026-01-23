@@ -227,6 +227,15 @@ final class UpstreamCheck
         }
 
         if (
+            str_contains($m, 'ochrona ddos')
+            || str_contains($m, 'blacklist')
+            || str_contains($m, 'blacklisted')
+            || str_contains($m, 'denial of service')
+        ) {
+            return 'upstream';
+        }
+
+        if (
             str_contains($m, 'pusta odpowiedź')
             || str_contains($m, 'nie znaleziono danych')
             || str_contains($m, 'nie udało się pobrać tabtoken')
