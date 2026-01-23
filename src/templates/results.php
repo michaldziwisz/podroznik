@@ -67,6 +67,9 @@ foreach (($results['results'] ?? []) as $r) {
         $sellable = (bool)($r['sellable'] ?? false);
         $resId = (string)($r['resId'] ?? '');
         $buyUrl = $sellable ? \TyfloPodroznik\Html::epodroznikUrl($r['buyHref'] ?? null) : null;
+        if ($sellable && $buyUrl === null && $resId !== '') {
+          $buyUrl = \TyfloPodroznik\Html::epodroznikBuyTicketUrl($resId, $_SESSION['ep_tabToken'] ?? null);
+        }
         $segments = (int)($r['connectionsCount'] ?? 0);
         $changes = (int)($r['sort']['changes'] ?? 0);
         if ($segments > 0 && $changes === 0) {

@@ -5,6 +5,30 @@ namespace TyfloPodroznik;
 
 final class Html
 {
+    public static function epodroznikBuyTicketUrl(string $resId, ?string $tabToken = null): ?string
+    {
+        $resId = trim($resId);
+        if ($resId === '') {
+            return null;
+        }
+
+        $q = [
+            'resId' => $resId,
+            'forward' => 'url',
+        ];
+
+        if (is_string($tabToken)) {
+            $tabToken = trim($tabToken);
+        } else {
+            $tabToken = '';
+        }
+        if ($tabToken !== '') {
+            $q = ['tabToken' => $tabToken] + $q;
+        }
+
+        return 'https://www.e-podroznik.pl/public/defineTicketP.do?' . http_build_query($q, '', '&', PHP_QUERY_RFC3986);
+    }
+
     public static function epodroznikUrl(?string $href): ?string
     {
         if ($href === null) {

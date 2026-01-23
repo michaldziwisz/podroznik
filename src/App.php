@@ -838,6 +838,10 @@ final class App
         }
 
         $buyUrl = $this->buyUrlForResId($id);
+        if ($buyUrl === null) {
+            $tabToken = $_SESSION['ep_tabToken'] ?? null;
+            $buyUrl = Html::epodroznikBuyTicketUrl($id, is_string($tabToken) ? $tabToken : null);
+        }
         $this->layout('Szczegóły trasy', $this->view->render('result', [
             'csrf' => Csrf::token(),
             'id' => $id,
@@ -904,10 +908,15 @@ final class App
                 return null;
             }
             $buyHref = $r['buyHref'] ?? null;
-            if (!is_string($buyHref)) {
-                return null;
+            if (is_string($buyHref)) {
+                $buyUrl = Html::epodroznikUrl($buyHref);
+                if ($buyUrl !== null) {
+                    return $buyUrl;
+                }
             }
-            return Html::epodroznikUrl($buyHref);
+
+            $tabToken = $_SESSION['ep_tabToken'] ?? null;
+            return Html::epodroznikBuyTicketUrl($resId, is_string($tabToken) ? $tabToken : null);
         }
 
         return null;
