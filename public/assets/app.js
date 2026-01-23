@@ -460,6 +460,13 @@
 
         // Ensure the browser submits the POST into the named window (user-initiated submit).
         form.target = winName;
+
+        // Best-effort: after the POST establishes the session in the new tab, jump to the ticket page.
+        // We cannot reliably detect cross-origin load in every browser (especially iOS/Safari),
+        // so we use a short delay and keep a clear fallback (user can click "Kup bilet" on epodroznik results).
+        window.setTimeout(() => {
+          navigateToTicket();
+        }, 2500);
       });
     }
   }
