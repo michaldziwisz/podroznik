@@ -400,73 +400,32 @@
         const winName = normalizeWhitespace(form.dataset.epWindow || 'epbuy');
         if (!defineUrl) return;
 
-        // Try to keep the search (POST) and the ticket page in the same new tab/window.
-        // Fallback: let the form submit normally (opens search results), and the user can click "Kup bilet" there.
-        let win = null;
-        try {
-          win = window.open('about:blank', winName);
-        } catch (_) {
-          win = null;
-        }
-        if (!win) {
-          form.target = '_blank';
-          return;
-        }
+        // Submit the POST into a named new tab/window (user-initiated submit).
+        // We avoid calling window.open() preemptively (can be blocked on some setups),
+        // and instead grab a reference to the named window after submit.
+        form.target = winName;
 
-        // Prevent reverse-tabnabbing: keep the window reference, but detach opener.
-        try {
-          win.opener = null;
-        } catch (_) {
-          // ignore
-        }
+        window.setTimeout(() => {
+          let win = null;
+          try {
+            win = window.open('', winName);
+          } catch (_) {
+            win = null;
+          }
+          if (!win) return;
 
-        let navigated = false;
-        const navigateToTicket = () => {
-          if (navigated) return;
-          navigated = true;
+          try {
+            win.opener = null;
+          } catch (_) {
+            // ignore
+          }
+
           try {
             win.location.href = defineUrl;
           } catch (_) {
-            try {
-              window.open(defineUrl, winName, 'noopener');
-            } catch (_) {
-              // ignore
-            }
+            // ignore
           }
-        };
-
-        const isCrossOrigin = () => {
-          try {
-            // Reading location throws for cross-origin windows.
-            void win.location.href;
-            return false;
-          } catch (_) {
-            return true;
-          }
-        };
-
-        const onLoad = () => {
-          if (isCrossOrigin()) {
-            win.removeEventListener('load', onLoad);
-            navigateToTicket();
-          }
-        };
-
-        try {
-          win.addEventListener('load', onLoad);
-        } catch (_) {
-          // ignore
-        }
-
-        // Ensure the browser submits the POST into the named window (user-initiated submit).
-        form.target = winName;
-
-        // Best-effort: after the POST establishes the session in the new tab, jump to the ticket page.
-        // We cannot reliably detect cross-origin load in every browser (especially iOS/Safari),
-        // so we use a short delay and keep a clear fallback (user can click "Kup bilet" on epodroznik results).
-        window.setTimeout(() => {
-          navigateToTicket();
-        }, 2500);
+        }, 3500);
       });
     }
   }
