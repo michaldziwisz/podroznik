@@ -237,8 +237,13 @@ final class UpstreamCheck
 
         if (
             str_contains($m, 'pusta odpowiedź')
+            || str_contains($m, 'pustą odpowiedź')
             || str_contains($m, 'nie znaleziono danych')
+            || str_contains($m, 'nie udało się odczytać')
             || str_contains($m, 'nie udało się pobrać tabtoken')
+            || str_contains($m, 'błąd podpowiedzi')
+            || str_contains($m, 'strona błędu')
+            || str_contains($m, 'nieoczekiwany błąd')
             || str_contains($m, 'domdocument')
         ) {
             return 'parser';

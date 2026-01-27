@@ -62,20 +62,68 @@ final class EpodroznikClient
             $type = 'ALL';
         }
 
+        $this->ensureInitialized();
+
+        $data = $this->suggestRequest($query, $requestKind, $type);
+        $suggestions = $data['suggestions'];
+        $status = isset($data['status']) && is_string($data['status']) ? trim($data['status']) : '';
+
+        if ($suggestions === [] && ($status === '' || $status !== '0')) {
+            // Sometimes e‑podroznik returns empty results when the remote session/token expires.
+            // Recreate cookies + token and try once more.
+            $this->resetRemoteSession();
+            $this->ensureInitialized();
+            $data2 = $this->suggestRequest($query, $requestKind, $type);
+            if ($data2['suggestions'] !== []) {
+                return $data2;
+            }
+
+            $status2 = isset($data2['status']) && is_string($data2['status']) ? trim($data2['status']) : '';
+            if ($status2 !== '' && $status2 !== '0') {
+                throw new \RuntimeException('e‑podroznik.pl zwrócił błąd podpowiedzi (status=' . $status2 . '). Spróbuj ponownie później.');
+            }
+            return $data2;
+        }
+
+        if ($status !== '' && $status !== '0' && $suggestions === []) {
+            throw new \RuntimeException('e‑podroznik.pl zwrócił błąd podpowiedzi (status=' . $status . '). Spróbuj ponownie później.');
+        }
+
+        return $data;
+    }
+
+    private function suggestRequest(string $query, string $requestKind, string $type): array
+    {
         $resp = $this->post('/public/suggest.do', [
             'query' => $query,
             'type' => $type,
             'requestKind' => $requestKind,
             'countryCode' => '',
             'forcingCountryCode' => 'false',
+            'tabToken' => (string)$this->tabToken,
         ], extraHeaders: [
             'X-Requested-With: XMLHttpRequest',
-        ]);
+            'Content-Type: application/x-www-form-urlencoded; charset=UTF-8',
+            'Origin: ' . self::BASE_URL,
+            'Referer: ' . self::BASE_URL . '/',
+        ], followLocation: true);
 
-        $data = json_decode($resp, true);
-        if (!is_array($data)) {
-            return ['status' => '1', 'suggestions' => []];
+        $respTrim = trim($resp);
+        if ($respTrim === '') {
+            throw new \RuntimeException('e‑podroznik.pl zwrócił pustą odpowiedź dla podpowiedzi (suggest.do). Spróbuj ponownie później.');
         }
+
+        try {
+            $data = json_decode($respTrim, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new \RuntimeException('Nie udało się odczytać podpowiedzi z e‑podroznik.pl (nieprawidłowa odpowiedź). Spróbuj ponownie później.');
+        }
+
+        if (!is_array($data) || !isset($data['suggestions']) || !is_array($data['suggestions'])) {
+            throw new \RuntimeException('Nie udało się odczytać listy podpowiedzi z e‑podroznik.pl. Spróbuj ponownie później.');
+        }
+
+        /** @var array{suggestions: array} $data */
         return $data;
     }
 
@@ -408,6 +456,9 @@ final class EpodroznikClient
         if (str_contains($t, 'dos') && str_contains($t, 'attack') && str_contains($t, 'detected')) {
             throw new \RuntimeException('e‑podroznik.pl blokuje zapytania z tego IP (ochrona DDoS). Spróbuj ponownie później.');
         }
+        if (str_contains($t, 'page-unhalted') || str_contains($t, 'nieoczekiwany błąd') || str_contains($t, 'nieobsłużony wyjątek')) {
+            throw new \RuntimeException('e‑podroznik.pl zwraca stronę błędu („nieoczekiwany błąd”). Spróbuj ponownie później.');
+        }
     }
 
     private function buildFormUrlEncodedBody(array $data): string
@@ -451,12 +502,48 @@ final class EpodroznikClient
             return;
         }
 
-        $html = $this->request('GET', self::BASE_URL . '/', null, followLocation: true);
-        if (!preg_match('/name=\"tabToken\"\\s*value=\"([^\"]+)\"/i', $html, $m)) {
-            throw new \RuntimeException('Nie udało się pobrać tabToken z e-podroznik.pl.');
+        $candidates = [
+            self::BASE_URL . '/',
+            self::BASE_URL . '/public/seoIndexMainPage.do',
+            self::BASE_URL . '/rozklad-jazdy',
+        ];
+
+        foreach ($candidates as $url) {
+            $html = $this->request('GET', $url, null, followLocation: true);
+            $tabToken = $this->extractTabToken($html);
+            if ($tabToken !== null) {
+                $this->tabToken = $tabToken;
+                $_SESSION['ep_tabToken'] = $this->tabToken;
+                return;
+            }
         }
-        $this->tabToken = (string)$m[1];
-        $_SESSION['ep_tabToken'] = $this->tabToken;
+
+        throw new \RuntimeException('Nie udało się pobrać tabToken z e-podroznik.pl.');
+    }
+
+    private function extractTabToken(string $html): ?string
+    {
+        // Try the hidden input.
+        if (preg_match('/name=\"tabToken\"\\s*value=\"([0-9a-f]{32})\"/i', $html, $m)) {
+            return (string)$m[1];
+        }
+
+        // Try a JS variable/field assignment.
+        if (preg_match('/\\btabToken\\b\\s*[:=]\\s*[\"\\\']([0-9a-f]{32})[\"\\\']/i', $html, $m)) {
+            return (string)$m[1];
+        }
+
+        // Fallback: JS initialization.
+        if (preg_match('/EPodroznik\\.setTabToken\\((?:\"|\\\')([0-9a-f]{32})(?:\"|\\\')\\)/i', $html, $m)) {
+            return (string)$m[1];
+        }
+
+        // Fallback: try to find any "tabToken ... <32-hex>" pattern.
+        if (preg_match('/tabtoken[^0-9a-f]{0,200}([0-9a-f]{32})/i', $html, $m)) {
+            return (string)$m[1];
+        }
+
+        return null;
     }
 
     private function formatDateForEpodroznik(string $date): ?string
