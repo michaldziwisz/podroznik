@@ -171,7 +171,23 @@
       status.textContent = normalizeWhitespace(text);
     }
 
+    function cancelPending() {
+      if (debounceTimer) {
+        window.clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
+      if (abortController) {
+        try {
+          abortController.abort();
+        } catch (_) {
+          // ignore
+        }
+        abortController = null;
+      }
+    }
+
     function closeList() {
+      cancelPending();
       open = false;
       activeIndex = -1;
       input.setAttribute('aria-expanded', 'false');
@@ -256,6 +272,8 @@
     function selectIndex(index) {
       if (index < 0 || index >= items.length) return;
       const s = items[index];
+      // Prevent any scheduled fetch from re-opening the list and hijacking the selection.
+      cancelPending();
       input.value = s.label || '';
       if (hidden && hidden instanceof HTMLInputElement) {
         hidden.value = s.value || '';
@@ -295,8 +313,12 @@
         lastQuery = q;
         try {
           const data = await fetchSuggestions(q);
+          const prevActiveValue =
+            open && activeIndex >= 0 && activeIndex < items.length ? items[activeIndex].value : '';
+          const prevActiveLabel =
+            open && activeIndex >= 0 && activeIndex < items.length ? items[activeIndex].label : '';
           const suggestions = Array.isArray(data && data.suggestions) ? data.suggestions : [];
-          items = suggestions
+          const nextItems = suggestions
             .filter((s) => s && typeof s === 'object')
             .map((s) => ({
               label: normalizeWhitespace(s.label),
@@ -305,7 +327,24 @@
             }))
             .filter((s) => s.label && s.value);
 
-          activeIndex = items.length > 0 ? 0 : -1;
+          items = nextItems;
+
+          if (items.length === 0) {
+            closeList();
+            return;
+          }
+
+          // If the user already navigated the list, keep their selection when the list refreshes.
+          // This avoids "jumping cursor" issues (e.g. selecting an option, then it snaps back to index 0).
+          let nextIndex = -1;
+          if (prevActiveValue) {
+            nextIndex = items.findIndex((s) => s.value === prevActiveValue);
+          }
+          if (nextIndex < 0 && prevActiveLabel) {
+            nextIndex = items.findIndex((s) => s.label === prevActiveLabel);
+          }
+          activeIndex = nextIndex >= 0 ? nextIndex : 0;
+
           renderList();
           if (items.length > 0) {
             setStatus(`Podpowiedzi: ${items.length}. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź.`);
