@@ -293,10 +293,24 @@
         cache: 'no-store',
         signal: abortController.signal,
       });
-      if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}`);
+      let data = null;
+      try {
+        data = await resp.json();
+      } catch (_) {
+        // ignore
       }
-      return await resp.json();
+      if (!resp.ok) {
+        const msg = data && typeof data.message === 'string' ? normalizeWhitespace(data.message) : '';
+        throw new Error(msg || `HTTP ${resp.status}`);
+      }
+      if (!data || typeof data !== 'object') {
+        throw new Error('Nie udało się odczytać podpowiedzi.');
+      }
+      if (data.ok === false) {
+        const msg = typeof data.message === 'string' ? normalizeWhitespace(data.message) : '';
+        throw new Error(msg || 'Nie udało się pobrać podpowiedzi.');
+      }
+      return data;
     }
 
     function scheduleFetch() {
@@ -331,6 +345,7 @@
 
           if (items.length === 0) {
             closeList();
+            setStatus('Brak podpowiedzi.');
             return;
           }
 
@@ -352,6 +367,8 @@
         } catch (e) {
           if (e && e.name === 'AbortError') return;
           closeList();
+          const msg = e && typeof e.message === 'string' ? normalizeWhitespace(e.message) : '';
+          setStatus(msg || 'Nie udało się pobrać podpowiedzi.');
         }
       }, debounceMs);
     }
