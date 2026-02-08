@@ -110,7 +110,8 @@ final class EpodroznikClient
 
         $respTrim = trim($resp);
         if ($respTrim === '') {
-            throw new \RuntimeException('e‑podroznik.pl zwrócił pustą odpowiedź dla podpowiedzi (suggest.do). Spróbuj ponownie później.');
+            // e‑podroznik sometimes returns HTTP 200 with an empty body when there are no matches.
+            return ['status' => '0', 'suggestions' => []];
         }
 
         try {
