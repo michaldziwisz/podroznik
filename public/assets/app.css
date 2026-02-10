@@ -5,7 +5,7 @@
   --card: #f5f5f5;
   --border: #d0d0d0;
   --focus: #005fcc;
-  --link: #0a58ca;
+  --link: #0a51c5;
   --link-visited: #5a2ca0;
   --danger: #b00020;
   --ok: #0b6b2a;
@@ -49,6 +49,7 @@ html.ui-contrast{
     --link: #79b8ff;
     --link-visited: #d2a8ff;
   }
+  html:not(.ui-contrast) .btn.primary{color: #000;}
 }
 
 body{

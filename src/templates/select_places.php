@@ -13,7 +13,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
   <p class="help">Znaleźliśmy kilka możliwych dopasowań. Wybierz właściwe miejsca i kontynuuj.</p>
 
   <div class="card">
-    <form method="post" action="/search" class="stack">
+    <form method="post" action="/search" class="stack" aria-label="Wybór miejsc">
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
       <input type="hidden" name="stage" value="select_places">
 

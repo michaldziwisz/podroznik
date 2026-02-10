@@ -11,7 +11,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
   <h1>Wyszukiwarka połączeń</h1>
 
   <div class="card">
-    <form method="post" action="/search" class="stack" novalidate>
+    <form method="post" action="/search" class="stack" novalidate aria-label="Wyszukiwanie połączeń">
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
       <fieldset class="grid-2">
