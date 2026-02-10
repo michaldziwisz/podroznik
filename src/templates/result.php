@@ -34,6 +34,7 @@ if (is_array($matchedResult)) {
         action="<?= \TyfloPodroznik\Html::e($searchAction) ?>"
         target="_blank"
         class="ep-ticket-handoff"
+        aria-label="Kup bilet — szczegóły połączenia"
         data-ep-ticket-handoff="1"
         data-ep-define-url="<?= \TyfloPodroznik\Html::e($defineTicketUrl) ?>"
         data-ep-window="<?= \TyfloPodroznik\Html::e('epbuy_' . $tabToken) ?>"

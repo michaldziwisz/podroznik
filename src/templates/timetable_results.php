@@ -44,7 +44,7 @@ foreach ($groups as $g) {
       <div><strong>Godzina:</strong> <?= \TyfloPodroznik\Html::e($fromTime !== '' ? $fromTime : '00:00') ?><?= $toTime !== '' ? '–' . \TyfloPodroznik\Html::e($toTime) : '' ?></div>
     <?php endif; ?>
 
-    <form method="get" action="/timetable/results" class="stack" novalidate>
+    <form method="get" action="/timetable/results" class="stack" novalidate aria-label="Zmień ustawienia rozkładu">
       <fieldset class="grid-2">
         <legend>Zmień ustawienia</legend>
         <div class="field">

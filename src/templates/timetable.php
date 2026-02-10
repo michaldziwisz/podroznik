@@ -13,7 +13,7 @@ $toTime = (string)($defaults['to_time'] ?? '');
   <h1>Rozkład jazdy z przystanku</h1>
 
   <div class="card">
-    <form method="post" action="/timetable/search" class="stack" novalidate>
+    <form method="post" action="/timetable/search" class="stack" novalidate aria-label="Wyszukiwanie rozkładu z przystanku">
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
 	      <fieldset>

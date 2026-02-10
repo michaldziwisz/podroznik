@@ -43,7 +43,7 @@ foreach (($results['results'] ?? []) as $r) {
       <?php endif; ?>
     <?php endif; ?>
     <div class="actions">
-      <form method="post" action="/extend" class="stack" novalidate>
+      <form method="post" action="/extend" class="stack" novalidate aria-label="Nawigacja wyników">
         <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
         <div class="actions">
           <button class="btn" type="submit" name="dir" value="back" <?= empty($_SESSION['extend_back']) ? 'disabled' : '' ?>>Wcześniejsze połączenia</button>
@@ -118,6 +118,7 @@ foreach (($results['results'] ?? []) as $r) {
               action="<?= \TyfloPodroznik\Html::e($searchAction) ?>"
               target="_blank"
               class="ep-ticket-handoff"
+              aria-label="<?= \TyfloPodroznik\Html::e('Kup bilet — wynik ' . ((int)$idx + 1)) ?>"
               data-ep-ticket-handoff="1"
               data-ep-define-url="<?= \TyfloPodroznik\Html::e($defineTicketUrl) ?>"
               data-ep-window="<?= \TyfloPodroznik\Html::e('epbuy_' . $tabToken) ?>"

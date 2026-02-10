@@ -12,7 +12,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
   <p class="help">Wybierz właściwy przystanek i pokaż rozkład jazdy.</p>
 
   <div class="card">
-    <form method="post" action="/timetable/search" class="stack">
+    <form method="post" action="/timetable/search" class="stack" aria-label="Wybór przystanku">
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
       <input type="hidden" name="stage" value="select_stop">
 

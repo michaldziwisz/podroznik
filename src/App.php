@@ -103,6 +103,15 @@ final class App
         $flash = $_SESSION['flash'] ?? null;
         unset($_SESSION['flash']);
 
+        $reqUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+        $path = parse_url($reqUri, PHP_URL_PATH) ?: '/';
+        if (!in_array($path, ['/contact', '/contact/send'], true)) {
+            $abs = $this->absoluteUrl($reqUri);
+            if ($abs !== '') {
+                $_SESSION['last_page_url'] = $abs;
+            }
+        }
+
         header('Content-Type: text/html; charset=utf-8');
         echo $this->view->render('layout', [
             'title' => $title,
@@ -179,6 +188,13 @@ final class App
 
     private function pageContact(): void
     {
+        $back = (string)($_GET['back'] ?? '');
+        if ($back !== '' && str_starts_with($back, '/')) {
+            $_SESSION['last_page_url'] = $this->absoluteUrl($back);
+            Html::redirect('/contact');
+            return;
+        }
+
         $defaults = [
             'kind' => (string)($_GET['kind'] ?? ''),
             'title' => (string)($_GET['title'] ?? ''),
@@ -195,12 +211,9 @@ final class App
         }
 
         if ($defaults['page'] === '') {
-            $ref = (string)($_GET['back'] ?? '');
-            if ($ref !== '' && !str_starts_with($ref, '/')) {
-                $ref = '';
-            }
-            if ($ref !== '') {
-                $defaults['page'] = $this->absoluteUrl($ref);
+            $last = $_SESSION['last_page_url'] ?? '';
+            if (is_string($last) && $last !== '' && preg_match('/^https?:\\/\\//i', $last)) {
+                $defaults['page'] = $last;
             }
         }
 

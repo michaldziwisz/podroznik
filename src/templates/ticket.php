@@ -46,6 +46,7 @@ $toTime = is_array($matchedResult) ? (string)($matchedResult['to']['time'] ?? ''
         action="<?= \TyfloPodroznik\Html::e($searchAction) ?>"
         target="_blank"
         class="ep-ticket-handoff"
+        aria-label="Kup bilet — przekierowanie"
         data-ep-ticket-handoff="1"
         data-ep-define-url="<?= \TyfloPodroznik\Html::e($defineTicketUrl) ?>"
         data-ep-window="<?= \TyfloPodroznik\Html::e('epbuy_' . $tabToken) ?>"
@@ -80,4 +81,3 @@ $toTime = is_array($matchedResult) ? (string)($matchedResult['to']['time'] ?? ''
     <?php endif; ?>
   </div>
 </div>
-

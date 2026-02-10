@@ -37,7 +37,7 @@ $reportId = is_array($sent) ? (string)($sent['reportId'] ?? '') : '';
   <?php endif; ?>
 
   <div class="card">
-    <form method="post" action="/contact/send" class="stack" novalidate>
+    <form method="post" action="/contact/send" class="stack" novalidate aria-label="Formularz zgłoszenia">
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
       <fieldset>
@@ -106,4 +106,3 @@ $reportId = is_array($sent) ? (string)($sent['reportId'] ?? '') : '';
     </form>
   </div>
 </div>
-
