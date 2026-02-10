@@ -63,9 +63,19 @@ body{
 
 a{color: var(--link);}
 a:visited{color: var(--link-visited);}
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
+
+a:focus, button:focus, input:focus, select:focus, textarea:focus{
   outline: 3px solid var(--focus);
   outline-offset: 2px;
+}
+@supports selector(:focus-visible){
+  a:focus:not(:focus-visible),
+  button:focus:not(:focus-visible),
+  input:focus:not(:focus-visible),
+  select:focus:not(:focus-visible),
+  textarea:focus:not(:focus-visible){
+    outline: none;
+  }
 }
 
 .skip-link{
@@ -78,7 +88,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   z-index: 1000;
   border-radius: 8px;
 }
-.skip-link:focus{left: 10px; top: 10px;}
+.skip-link:focus, .skip-link:focus-visible{left: 10px; top: 10px;}
 
 .wrap{max-width: var(--maxw); margin: 0 auto; padding: 0 16px;}
 
@@ -100,6 +110,7 @@ header.site{
   gap: 2px;
 }
 .brand a{color: var(--fg); text-decoration: none;}
+.brand .title, .brand .subtitle{display:block;}
 .brand .title{font-weight: 700; font-size: 1.1rem;}
 .brand .subtitle{color: var(--muted); font-size: 0.95rem;}
 

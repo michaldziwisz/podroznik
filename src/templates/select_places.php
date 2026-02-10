@@ -19,7 +19,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 
       <fieldset>
         <legend>Z: <?= \TyfloPodroznik\Html::e($fromQuery) ?></legend>
-        <div class="stack" role="radiogroup" aria-label="Wybór miejsca startu">
+        <div class="stack">
           <?php if (empty($fromSuggestions)): ?>
             <p class="error">Brak podpowiedzi dla pola „Z”. Wróć i spróbuj wpisać inaczej.</p>
           <?php endif; ?>
@@ -43,7 +43,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 
       <fieldset>
         <legend>Do: <?= \TyfloPodroznik\Html::e($toQuery) ?></legend>
-        <div class="stack" role="radiogroup" aria-label="Wybór miejsca docelowego">
+        <div class="stack">
           <?php if (empty($toSuggestions)): ?>
             <p class="error">Brak podpowiedzi dla pola „Do”. Wróć i spróbuj wpisać inaczej.</p>
           <?php endif; ?>
@@ -66,7 +66,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
       </fieldset>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-        <div class="field" aria-label="Weryfikacja antyspam">
+        <div class="field" role="group" aria-label="Weryfikacja antyspam">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
           <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
           <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>

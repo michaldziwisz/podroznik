@@ -42,7 +42,7 @@ $reportId = is_array($sent) ? (string)($sent['reportId'] ?? '') : '';
 
       <fieldset>
         <legend>Typ</legend>
-        <div class="stack" role="radiogroup" aria-label="Typ zgłoszenia">
+        <div class="stack">
           <label>
             <input type="radio" name="kind" value="bug" <?= $kind === 'bug' ? 'checked' : '' ?>>
             Błąd
@@ -68,8 +68,8 @@ $reportId = is_array($sent) ? (string)($sent['reportId'] ?? '') : '';
         </div>
 
         <div class="field">
-          <label for="description">Opis</label>
-          <textarea id="description" name="description" rows="8" required><?= \TyfloPodroznik\Html::e($description) ?></textarea>
+          <label id="description_label" for="description">Opis</label>
+          <textarea id="description" name="description" rows="8" required aria-labelledby="description_label"><?= \TyfloPodroznik\Html::e($description) ?></textarea>
           <div class="help">Opisz problem/sugestię i (jeśli to błąd) kroki odtworzenia.</div>
           <?php if (!empty($errors['description'])): ?>
             <div class="error"><?= \TyfloPodroznik\Html::e((string)$errors['description']) ?></div>

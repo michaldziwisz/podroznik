@@ -182,8 +182,8 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
           <label><input type="checkbox" name="prefer_direct" value="1" checked> Preferuj bez przesiadek</label>
           <label><input type="checkbox" name="only_online" value="1"> Tylko bilet online</label>
           <div class="field">
-            <label for="min_change">Minimalny czas na przesiadkę</label>
-            <select id="min_change" name="min_change">
+            <label id="min_change_label" for="min_change">Minimalny czas na przesiadkę</label>
+            <select id="min_change" name="min_change" aria-labelledby="min_change_label">
               <option value="">Domyślny</option>
               <option value="5">Co najmniej 5 minut</option>
               <option value="10">Co najmniej 10 minut</option>
@@ -205,7 +205,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
       </fieldset>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-        <div class="field" aria-label="Weryfikacja antyspam">
+        <div class="field" role="group" aria-label="Weryfikacja antyspam">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
           <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
           <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>
