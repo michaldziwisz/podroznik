@@ -151,7 +151,6 @@
 
     if (!list || !(list instanceof HTMLElement)) return;
 
-    input.setAttribute('aria-haspopup', 'listbox');
     input.setAttribute('aria-controls', list.id);
     input.setAttribute('aria-expanded', 'false');
 

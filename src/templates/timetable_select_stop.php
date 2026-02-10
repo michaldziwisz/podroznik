@@ -32,7 +32,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 
       <fieldset>
         <legend>Przystanki</legend>
-        <div class="stack" role="radiogroup" aria-label="Wybór przystanku">
+        <div class="stack">
           <?php foreach ($suggestions as $i => $s): ?>
             <?php
               $label = (string)($s['n'] ?? '');
@@ -52,7 +52,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
       </fieldset>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-        <div class="field" aria-label="Weryfikacja antyspam">
+        <div class="field" role="group" aria-label="Weryfikacja antyspam">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
           <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
           <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>

@@ -51,7 +51,7 @@ foreach (($results['results'] ?? []) as $r) {
         </div>
 
         <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-          <div class="field" aria-label="Weryfikacja antyspam">
+          <div class="field" role="group" aria-label="Weryfikacja antyspam">
             <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
             <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
             <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>

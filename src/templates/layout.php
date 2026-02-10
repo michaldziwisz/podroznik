@@ -13,16 +13,16 @@
 	    <title><?= \TyfloPodroznik\Html::e($title) ?> — Podróżnik Tyflo</title>
 	    <link rel="stylesheet" href="/assets/app.css">
 	    <script src="/assets/app.js" defer></script>
-	  </head>
+  </head>
   <body>
-    <a class="skip-link" href="#main">Przejdź do treści</a>
     <header class="site" role="banner">
+      <a class="skip-link" href="#main">Przejdź do treści</a>
       <div class="wrap">
         <div class="bar">
           <div class="brand">
             <a href="/">
-              <div class="title">Podróżnik Tyflo</div>
-              <div class="subtitle">Dostępna wyszukiwarka połączeń</div>
+              <span class="title">Podróżnik Tyflo</span>
+              <span class="subtitle">Dostępna wyszukiwarka połączeń</span>
             </a>
           </div>
           <nav class="ui-controls" aria-label="Nawigacja">
