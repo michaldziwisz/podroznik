@@ -69,7 +69,7 @@ $reportId = is_array($sent) ? (string)($sent['reportId'] ?? '') : '';
 
         <div class="field">
           <label id="description_label" for="description">Opis</label>
-          <textarea id="description" name="description" rows="8" required aria-labelledby="description_label"><?= \TyfloPodroznik\Html::e($description) ?></textarea>
+          <textarea id="description" name="description" rows="8" required><?= \TyfloPodroznik\Html::e($description) ?></textarea>
           <div class="help">Opisz problem/sugestię i (jeśli to błąd) kroki odtworzenia.</div>
           <?php if (!empty($errors['description'])): ?>
             <div class="error"><?= \TyfloPodroznik\Html::e((string)$errors['description']) ?></div>
