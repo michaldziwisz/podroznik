@@ -125,6 +125,10 @@ header.site{
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--fg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   padding: 8px 10px;
   border-radius: 10px;
   cursor: pointer;
@@ -149,8 +153,11 @@ main{padding: 18px 0 30px;}
 }
 .stack{display: grid; gap: var(--gap);}
 
+h1, h2, h3{margin: 0;}
+
 label{font-weight: 600;}
-.help{color: var(--muted); font-size: 0.95rem;}
+.help{color: var(--muted); font-size: 0.95rem; font-weight: 400;}
+label .help{display: block;}
 .error{color: var(--danger);}
 .ok{color: var(--ok);}
 .warn{color: var(--warn);}
@@ -208,7 +215,8 @@ input[type="text"], input[type="date"], input[type="time"], input[type="email"],
   box-sizing: border-box;
 }
 textarea{resize: vertical; min-height: 6rem;}
-input[type="checkbox"], input[type="radio"]{transform: scale(1.2);}
+input[type="checkbox"], input[type="radio"]{transform: scale(1.2); vertical-align: middle;}
+label > input[type="checkbox"], label > input[type="radio"]{margin-right: 10px;}
 
 fieldset{
   border: 1px solid var(--border);
@@ -262,6 +270,32 @@ footer.site{
   border-top: 1px solid var(--border);
   padding: 16px 0;
   color: var(--muted);
+}
+
+@media (max-width: 520px){
+  :root{--gap: 12px;}
+
+  .site .bar{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  nav.ui-controls, form.ui-controls{width: 100%;}
+  nav.ui-controls, form.ui-controls{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  }
+  .ui-controls{justify-content: flex-start;}
+  .ui-controls .btn{width: 100%; justify-content: center;}
+
+  .actions{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .actions .btn, .actions button.btn{
+    width: 100%;
+    justify-content: center;
+  }
+  .actions form{width: 100%;}
 }
 
 @media (prefers-reduced-motion: reduce){

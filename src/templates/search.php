@@ -76,8 +76,8 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         <legend>Data i godzina</legend>
 	        <div class="field">
 	          <label for="date">Data wyjazdu</label>
-	          <input id="date" name="date" type="date" placeholder="YYYY-MM-DD" required value="<?= \TyfloPodroznik\Html::e((string)($defaults['date'] ?? date('Y-m-d'))) ?>">
-	          <div class="help">Format: YYYY-MM-DD lub DD.MM.YYYY (np. 2026-01-20).</div>
+	          <input id="date" name="date" type="date" placeholder="YYYY-MM-DD" required aria-describedby="search_date_help" value="<?= \TyfloPodroznik\Html::e((string)($defaults['date'] ?? date('Y-m-d'))) ?>">
+	          <div id="search_date_help" class="help">Format: YYYY-MM-DD lub DD.MM.YYYY (np. 2026-01-20).</div>
 	        </div>
 	        <div class="field">
 	          <label for="time">Godzina (opcjonalnie)</label>
