@@ -245,14 +245,21 @@ legend{font-weight: 700; padding: 0 6px;}
 .result .actions{display:flex; flex-wrap:wrap; gap: 10px; margin-top: 10px;}
 .actions{display:flex; flex-wrap:wrap; gap: 10px; margin-top: 10px;}
 
-dl.meta{
+.meta-kv{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+}
+.meta-kv li{
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: 4px 12px;
-  margin: 0;
+  align-items: start;
 }
-dl.meta dt{font-weight: 700;}
-dl.meta dd{margin: 0;}
+.meta-kv .k{font-weight: 700;}
 
 table{
   width: 100%;
