@@ -2,10 +2,12 @@
 /** @var string $csrf */
 /** @var string $q */
 /** @var array $suggestions */
+/** @var array $otherSuggestions */
 /** @var array $filters */
 $turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
 $turnstileRequired = (bool)($turnstile['required'] ?? false);
 $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
+$otherSuggestions = (isset($otherSuggestions) && is_array($otherSuggestions)) ? $otherSuggestions : [];
 ?>
 <div class="stack">
   <h1>Wybór przystanku</h1>
@@ -50,6 +52,31 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
           <?php endforeach; ?>
         </div>
       </fieldset>
+
+      <?php if ($otherSuggestions !== []): ?>
+        <fieldset>
+          <legend>Inne pasujące punkty (bez rozkładu)</legend>
+          <div class="help">
+            Te punkty pojawiają się w wyszukiwarce połączeń e‑podroznik.pl (np. „dworzec”, „door to door”), ale zwykle nie mają rozkładu przystankowego („tabliczki”).
+          </div>
+          <ul>
+            <?php foreach ($otherSuggestions as $s): ?>
+              <?php
+                $label = (string)($s['n'] ?? '');
+                $info = (string)($s['cai'] ?? ($s['a'][0] ?? ''));
+              ?>
+              <?php if ($label !== ''): ?>
+                <li>
+                  <?= \TyfloPodroznik\Html::e($label) ?>
+                  <?php if ($info !== ''): ?>
+                    <span class="help">— <?= \TyfloPodroznik\Html::e($info) ?></span>
+                  <?php endif; ?>
+                </li>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </ul>
+        </fieldset>
+      <?php endif; ?>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
         <div class="field" role="group" aria-label="Weryfikacja antyspam">

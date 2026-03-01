@@ -381,7 +381,12 @@ final class App
         if ($stage === 'select_stop') {
             $pending = $_SESSION['pending_timetable'] ?? null;
             $pendingSuggestions = $_SESSION['pending_timetable_suggestions'] ?? null;
-            unset($_SESSION['pending_timetable'], $_SESSION['pending_timetable_suggestions']);
+            $pendingOtherSuggestions = $_SESSION['pending_timetable_other_suggestions'] ?? [];
+            unset($_SESSION['pending_timetable'], $_SESSION['pending_timetable_suggestions'], $_SESSION['pending_timetable_other_suggestions']);
+
+            if (!is_array($pendingOtherSuggestions)) {
+                $pendingOtherSuggestions = [];
+            }
 
             if (!is_array($pending) || !is_array($pendingSuggestions)) {
                 $this->flash('Brak danych wyboru przystanku. Wykonaj wyszukiwanie ponownie.', 'error');
@@ -395,6 +400,7 @@ final class App
                     'csrf' => Csrf::token(),
                     'q' => (string)($pending['q'] ?? ''),
                     'suggestions' => $pendingSuggestions,
+                    'otherSuggestions' => $pendingOtherSuggestions,
                     'filters' => [
                         'date' => (string)($pending['date'] ?? ''),
                         'from_time' => (string)($pending['from_time'] ?? ''),
@@ -413,6 +419,7 @@ final class App
                     'csrf' => Csrf::token(),
                     'q' => (string)($pending['q'] ?? ''),
                     'suggestions' => $pendingSuggestions,
+                    'otherSuggestions' => $pendingOtherSuggestions,
                     'filters' => [
                         'date' => (string)($pending['date'] ?? ''),
                         'from_time' => (string)($pending['from_time'] ?? ''),
@@ -489,6 +496,7 @@ final class App
 
         $stopV = trim((string)($_POST['stopV'] ?? ''));
         $stopId = $this->stopIdFromPlaceDataString($stopV);
+        $pickedNonTimetable = $stopV !== '' && $stopId === null;
         if ($stopId !== null) {
             $_SESSION['last_timetable_form'] = [
                 'q' => $params['q'],
@@ -506,10 +514,39 @@ final class App
         }
 
         $resp = $client->suggest($params['q'], requestKind: 'SOURCE', type: 'STOPS');
-        $suggestions = $this->filterStopSuggestions($resp['suggestions'] ?? []);
+        $rawSuggestions = (array)($resp['suggestions'] ?? []);
+        $stopLikeSuggestions = $this->filterStopLikeSuggestions($rawSuggestions);
+        $suggestions = $this->filterStopSuggestions($rawSuggestions);
+
+        $otherSuggestions = [];
+        foreach ($stopLikeSuggestions as $s) {
+            if (!is_array($s)) {
+                continue;
+            }
+            $pds = isset($s['placeDataString']) && is_string($s['placeDataString']) ? trim($s['placeDataString']) : '';
+            if ($pds === '' || $this->stopIdFromPlaceDataString($pds) !== null) {
+                continue;
+            }
+            $otherSuggestions[] = $s;
+        }
 
         if ($suggestions === []) {
-            $this->flash('Nie znaleziono przystanków dla podanej frazy. Spróbuj wpisać bardziej ogólną nazwę (np. miasto).', 'error');
+            if ($otherSuggestions !== []) {
+                $names = [];
+                foreach ($otherSuggestions as $s) {
+                    $label = isset($s['n']) && is_string($s['n']) ? trim($s['n']) : '';
+                    if ($label !== '' && !in_array($label, $names, true)) {
+                        $names[] = $label;
+                    }
+                    if (count($names) >= 2) {
+                        break;
+                    }
+                }
+                $foundTxt = $names !== [] ? (' (' . implode(', ', $names) . ')') : '';
+                $this->flash('Znaleziono punkty' . $foundTxt . ', ale e‑podroznik.pl nie udostępnia dla nich rozkładu przystankowego („tabliczki”). Wpisz bardziej konkretny przystanek (np. „d.a.” = dworzec autobusowy) albo skorzystaj z wyszukiwarki połączeń.', 'error');
+            } else {
+                $this->flash('Nie znaleziono przystanków dla podanej frazy. Spróbuj wpisać bardziej ogólną nazwę (np. miasto).', 'error');
+            }
             Html::redirect(Html::url('/timetable', [
                 'q' => $params['q'],
                 'date' => $params['date'],
@@ -518,41 +555,47 @@ final class App
             ]));
         }
 
-        $pick = $this->pickSuggestion($params['q'], $suggestions);
-        if ($pick !== null) {
+        // Auto-pick only when the user typed an exact stop name, or when it's the only candidate
+        // and there are no other stop-like matches (e.g. "dworzec"/"door to door" points without timetables).
+        $pick = $this->pickExactSuggestion($params['q'], $suggestions);
+        if ($pick !== null || (count($suggestions) === 1 && $otherSuggestions === [] && !$pickedNonTimetable)) {
+            if ($pick === null) {
+                $pick = $suggestions[0];
+            }
+
             $stopId = $this->stopIdFromPlaceDataString((string)($pick['placeDataString'] ?? ''));
-            if ($stopId === null) {
-                $this->flash('Nie udało się odczytać identyfikatora przystanku z sugestii.', 'error');
-                Html::redirect(Html::url('/timetable', [
+            if ($stopId !== null) {
+                $_SESSION['last_timetable_form'] = [
                     'q' => $params['q'],
+                    'date' => $params['date'],
+                    'from_time' => $params['from_time'],
+                    'to_time' => $params['to_time'],
+                ];
+
+                Html::redirect(Html::url('/timetable/results', [
+                    'stopId' => $stopId,
                     'date' => $params['date'],
                     'from_time' => $params['from_time'],
                     'to_time' => $params['to_time'],
                 ]));
             }
+        }
 
-            $_SESSION['last_timetable_form'] = [
-                'q' => $params['q'],
-                'date' => $params['date'],
-                'from_time' => $params['from_time'],
-                'to_time' => $params['to_time'],
-            ];
-
-            Html::redirect(Html::url('/timetable/results', [
-                'stopId' => $stopId,
-                'date' => $params['date'],
-                'from_time' => $params['from_time'],
-                'to_time' => $params['to_time'],
-            ]));
+        if ($pickedNonTimetable) {
+            $this->flash('Wybrany punkt nie ma rozkładu przystankowego („tabliczki”) w e‑podroznik.pl. Wybierz konkretny przystanek z listy.', 'warn');
+        } elseif ($otherSuggestions !== []) {
+            $this->flash('Dla tej frazy znaleziono też punkty bez rozkładu przystankowego. Wybierz przystanek z listy.', 'warn');
         }
 
         $_SESSION['pending_timetable'] = $params;
         $_SESSION['pending_timetable_suggestions'] = $suggestions;
+        $_SESSION['pending_timetable_other_suggestions'] = $otherSuggestions;
 
         $this->layout('Wybór przystanku', $this->view->render('timetable_select_stop', [
             'csrf' => Csrf::token(),
             'q' => $params['q'],
             'suggestions' => $suggestions,
+            'otherSuggestions' => $otherSuggestions,
             'filters' => [
                 'date' => $params['date'],
                 'from_time' => $params['from_time'],
@@ -1092,6 +1135,24 @@ final class App
         return null;
     }
 
+    private function pickExactSuggestion(string $query, array $suggestions): ?array
+    {
+        $q = mb_strtolower(trim($query));
+        if ($q === '') {
+            return null;
+        }
+        foreach ($suggestions as $s) {
+            if (!is_array($s)) {
+                continue;
+            }
+            $n = isset($s['n']) && is_string($s['n']) ? mb_strtolower(trim($s['n'])) : '';
+            if ($n !== '' && $n === $q) {
+                return $s;
+            }
+        }
+        return null;
+    }
+
     private function filterStopSuggestions(array $suggestions): array
     {
         $suggestions = $this->filterRealSuggestions($suggestions);
@@ -1107,6 +1168,30 @@ final class App
             $out[] = $s;
         }
         return $out;
+    }
+
+    private function filterStopLikeSuggestions(array $suggestions): array
+    {
+        $suggestions = $this->filterRealSuggestions($suggestions);
+
+        $supported = [];
+        $other = [];
+        foreach ($suggestions as $s) {
+            if (!is_array($s)) {
+                continue;
+            }
+            $pds = $s['placeDataString'] ?? null;
+            if (!is_string($pds) || !preg_match('/^(s|sg)\\|\\d+$/', $pds)) {
+                continue;
+            }
+            if (str_starts_with($pds, 's|')) {
+                $supported[] = $s;
+            } else {
+                $other[] = $s;
+            }
+        }
+
+        return array_merge($supported, $other);
     }
 
     private function stopIdFromPlaceDataString(string $placeDataString): ?string
@@ -1220,7 +1305,7 @@ final class App
             $client = EpodroznikClient::fromSession();
             $resp = $client->suggest($q, requestKind: $kind, type: $type);
             $raw = $resp['suggestions'] ?? [];
-            $sugs = $type === 'STOPS' ? $this->filterStopSuggestions((array)$raw) : $this->filterRealSuggestions((array)$raw);
+            $sugs = $type === 'STOPS' ? $this->filterStopLikeSuggestions((array)$raw) : $this->filterRealSuggestions((array)$raw);
         } catch (\Throwable) {
             http_response_code(502);
             echo json_encode([
@@ -1249,6 +1334,10 @@ final class App
                 $info = trim($s['cai']);
             } elseif (isset($s['a'][0]) && is_string($s['a'][0])) {
                 $info = trim($s['a'][0]);
+            }
+            if ($type === 'STOPS' && !str_starts_with($pds, 's|')) {
+                $note = 'brak rozkładu przystankowego';
+                $info = $info !== '' ? ($info . ' • ' . $note) : $note;
             }
             $out[] = [
                 'label' => $label,
