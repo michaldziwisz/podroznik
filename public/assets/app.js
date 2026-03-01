@@ -152,7 +152,6 @@
     if (!list || !(list instanceof HTMLElement)) return;
 
     input.setAttribute('aria-controls', list.id);
-    input.setAttribute('aria-haspopup', 'listbox');
     input.setAttribute('aria-expanded', 'false');
 
     let open = false;
@@ -161,6 +160,7 @@
     let debounceTimer = null;
     let abortController = null;
     let lastQuery = '';
+    let lastStatus = '';
 
     const minChars = 2;
     const limit = clamp(parseInt(input.dataset.epLimit || '8', 10) || 8, 1, 20);
@@ -168,7 +168,10 @@
 
     function setStatus(text) {
       if (!status) return;
-      status.textContent = normalizeWhitespace(text);
+      const next = normalizeWhitespace(text);
+      if (next === lastStatus) return;
+      lastStatus = next;
+      status.textContent = next;
     }
 
     function cancelPending() {
@@ -195,7 +198,6 @@
       list.hidden = true;
       list.innerHTML = '';
       items = [];
-      setStatus('');
     }
 
     function ensureOpen() {
@@ -220,7 +222,6 @@
         const li = document.createElement('li');
         li.id = `${list.id}_opt_${i}`;
         li.setAttribute('role', 'option');
-        li.setAttribute('aria-label', s.info ? `${s.label} — ${s.info}` : (s.label || ''));
         li.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
         li.dataset.value = s.value || '';
         li.dataset.label = s.label || '';
@@ -228,7 +229,6 @@
 
         const label = document.createElement('span');
         label.className = 'ac-label';
-        label.setAttribute('aria-hidden', 'true');
         label.textContent = s.label || '';
         li.appendChild(label);
 
@@ -281,7 +281,6 @@
       if (hidden && hidden instanceof HTMLInputElement) {
         hidden.value = s.value || '';
       }
-      setStatus(`Wybrano: ${s.label}${s.info ? ' — ' + s.info : ''}.`);
       closeList();
     }
 
@@ -322,6 +321,7 @@
         const q = normalizeWhitespace(input.value);
         if (q.length < minChars) {
           closeList();
+          setStatus('');
           return;
         }
         if (q === lastQuery && open) {
@@ -348,9 +348,11 @@
 
           if (items.length === 0) {
             closeList();
-            setStatus('Brak podpowiedzi.');
+            setStatus('Brak podpowiedzi');
             return;
           }
+
+          setStatus('');
 
           // If the user already navigated the list, keep their selection when the list refreshes.
           // This avoids "jumping cursor" issues (e.g. selecting an option, then it snaps back to index 0).
@@ -364,9 +366,6 @@
           activeIndex = nextIndex >= 0 ? nextIndex : 0;
 
           renderList();
-          if (items.length > 0) {
-            setStatus(`Podpowiedzi: ${items.length}. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź.`);
-          }
         } catch (e) {
           if (e && e.name === 'AbortError') return;
           closeList();

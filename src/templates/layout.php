@@ -15,7 +15,7 @@
 	    <script src="/assets/app.js" defer></script>
   </head>
   <body>
-    <header class="site" role="banner">
+    <header class="site">
       <a class="skip-link" href="#main">Przejdź do treści</a>
       <div class="wrap">
         <div class="bar">
@@ -25,7 +25,7 @@
               <span class="subtitle">Dostępna wyszukiwarka połączeń</span>
             </a>
           </div>
-          <nav class="ui-controls" aria-label="Nawigacja">
+          <nav class="ui-controls">
             <a class="btn small" href="/">Połączenia</a>
             <a class="btn small" href="/timetable">Rozkład z przystanku</a>
             <a class="btn small" href="/contact">Zgłoś problem</a>

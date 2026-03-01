@@ -30,7 +30,6 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            aria-autocomplete="list"
 	            aria-expanded="false"
 	            aria-controls="from_suggestions"
-	            aria-describedby="from_help from_status"
 	            data-ep-suggest="1"
 	            data-ep-kind="SOURCE"
 	            data-ep-type="ALL"
@@ -57,7 +56,6 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            aria-autocomplete="list"
 	            aria-expanded="false"
 	            aria-controls="to_suggestions"
-	            aria-describedby="to_help to_status"
 	            data-ep-suggest="1"
 	            data-ep-kind="DESTINATION"
 	            data-ep-type="ALL"
@@ -76,8 +74,8 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         <legend>Data i godzina</legend>
 	        <div class="field">
 	          <label for="date">Data wyjazdu</label>
-	          <input id="date" name="date" type="date" placeholder="YYYY-MM-DD" required aria-describedby="search_date_help" value="<?= \TyfloPodroznik\Html::e((string)($defaults['date'] ?? date('Y-m-d'))) ?>">
-	          <div id="search_date_help" class="help">Format: YYYY-MM-DD lub DD.MM.YYYY (np. 2026-01-20).</div>
+	          <input id="date" name="date" type="date" placeholder="YYYY-MM-DD" required value="<?= \TyfloPodroznik\Html::e((string)($defaults['date'] ?? date('Y-m-d'))) ?>">
+	          <div class="help">Format: YYYY-MM-DD lub DD.MM.YYYY (np. 2026-01-20).</div>
 	        </div>
 	        <div class="field">
 	          <label for="time">Godzina (opcjonalnie)</label>
@@ -87,7 +85,6 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            type="time"
 	            step="60"
 	            autocomplete="off"
-	            aria-describedby="time_help"
 	            placeholder="HH:MM"
 	            value="<?= \TyfloPodroznik\Html::e($timeDefault) ?>"
 	          >
@@ -95,7 +92,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            <input type="checkbox" name="omit_time" value="1" <?= $omitTimeChecked ?>>
 	            Pomiń godzinę (pokaż połączenia z całego dnia)
           </label>
-          <div id="time_help" class="help">Jeśli podasz godzinę, „Pomiń godzinę” zostanie zignorowane.</div>
+          <div class="help">Jeśli podasz godzinę, „Pomiń godzinę” zostanie zignorowane.</div>
         </div>
       </fieldset>
 
@@ -131,7 +128,6 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            type="time"
 	            step="60"
 	            autocomplete="off"
-	            aria-describedby="return_time_help"
 	            placeholder="HH:MM"
 	            value=""
 	          >
@@ -139,7 +135,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
             <input type="checkbox" name="omit_return_time" value="1" checked>
             Pomiń godzinę powrotu
           </label>
-          <div id="return_time_help" class="help">Godzina jest opcjonalna.</div>
+          <div class="help">Godzina jest opcjonalna.</div>
         </div>
         <div class="field">
           <span class="help">Wg:</span>
@@ -183,7 +179,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
           <label><input type="checkbox" name="only_online" value="1"> Tylko bilet online</label>
           <div class="field">
             <label id="min_change_label" for="min_change">Minimalny czas na przesiadkę</label>
-            <select id="min_change" name="min_change" aria-labelledby="min_change_label">
+            <select id="min_change" name="min_change">
               <option value="">Domyślny</option>
               <option value="5">Co najmniej 5 minut</option>
               <option value="10">Co najmniej 10 minut</option>
