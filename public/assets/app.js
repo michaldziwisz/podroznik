@@ -152,6 +152,7 @@
     if (!list || !(list instanceof HTMLElement)) return;
 
     input.setAttribute('aria-controls', list.id);
+    input.setAttribute('aria-haspopup', 'listbox');
     input.setAttribute('aria-expanded', 'false');
 
     let open = false;
@@ -219,6 +220,7 @@
         const li = document.createElement('li');
         li.id = `${list.id}_opt_${i}`;
         li.setAttribute('role', 'option');
+        li.setAttribute('aria-label', s.info ? `${s.label} — ${s.info}` : (s.label || ''));
         li.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
         li.dataset.value = s.value || '';
         li.dataset.label = s.label || '';
@@ -226,12 +228,14 @@
 
         const label = document.createElement('span');
         label.className = 'ac-label';
+        label.setAttribute('aria-hidden', 'true');
         label.textContent = s.label || '';
         li.appendChild(label);
 
         if (s.info) {
           const info = document.createElement('span');
           info.className = 'ac-info';
+          info.setAttribute('aria-hidden', 'true');
           info.textContent = s.info;
           li.appendChild(info);
         }
