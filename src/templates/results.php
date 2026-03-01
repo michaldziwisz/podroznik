@@ -21,7 +21,7 @@ foreach (($results['results'] ?? []) as $r) {
 <div class="stack" id="results">
   <h1>Wyniki wyszukiwania</h1>
 
-  <div class="card stack" role="status" aria-live="polite">
+  <div class="card stack">
     <div>
       <strong>Liczba wyników:</strong> <?= $count ?>
     </div>
@@ -43,7 +43,7 @@ foreach (($results['results'] ?? []) as $r) {
       <?php endif; ?>
     <?php endif; ?>
     <div class="actions">
-      <form method="post" action="/extend" class="stack" novalidate aria-label="Nawigacja wyników">
+      <form method="post" action="/extend" class="stack" novalidate>
         <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
         <div class="actions">
           <button class="btn" type="submit" name="dir" value="back" <?= empty($_SESSION['extend_back']) ? 'disabled' : '' ?>>Wcześniejsze połączenia</button>
@@ -66,7 +66,7 @@ foreach (($results['results'] ?? []) as $r) {
     </div>
   </div>
 
-  <div class="results" aria-label="Lista wyników">
+  <div class="results">
     <?php foreach (($results['results'] ?? []) as $idx => $r): ?>
       <?php
         $fromStop = (string)($r['from']['stop'] ?? '');
@@ -83,8 +83,19 @@ foreach (($results['results'] ?? []) as $r) {
         if ($segments > 0 && $changes === 0) {
           $changes = max(0, $segments - 1);
         }
+
+        $dateInfo = '';
+        if ($fromDate !== '' && $toDate !== '' && $fromDate === $toDate) {
+          $dateInfo = 'Dzień: ' . $fromDate;
+        } elseif ($fromDate !== '' && $toDate !== '' && $fromDate !== $toDate) {
+          $dateInfo = 'Dzień odjazdu: ' . $fromDate . ' • Dzień przyjazdu: ' . $toDate;
+        } elseif ($fromDate !== '') {
+          $dateInfo = 'Dzień odjazdu: ' . $fromDate;
+        } elseif ($toDate !== '') {
+          $dateInfo = 'Dzień przyjazdu: ' . $toDate;
+        }
       ?>
-      <article class="result" aria-label="Wynik <?= (int)$idx + 1 ?>">
+      <article class="result">
         <h3>
           <?= \TyfloPodroznik\Html::e($fromTime) ?> <?= \TyfloPodroznik\Html::e($fromStop) ?>
           → <?= \TyfloPodroznik\Html::e($toTime) ?> <?= \TyfloPodroznik\Html::e($toStop) ?>
@@ -92,22 +103,13 @@ foreach (($results['results'] ?? []) as $r) {
             <span class="meta">(<?= \TyfloPodroznik\Html::e($duration) ?>)</span>
           <?php endif; ?>
         </h3>
-        <ul class="meta-kv">
-          <?php if ($fromDate !== ''): ?>
-            <li><span class="k">Odjazd:</span> <span class="v"><?= \TyfloPodroznik\Html::e(trim($fromTime . ' ' . $fromDate)) ?></span></li>
+        <div class="help">
+          <?php if ($dateInfo !== ''): ?>
+            <?= \TyfloPodroznik\Html::e($dateInfo) ?> •
           <?php endif; ?>
-          <?php if ($toDate !== ''): ?>
-            <li><span class="k">Przyjazd:</span> <span class="v"><?= \TyfloPodroznik\Html::e(trim($toTime . ' ' . $toDate)) ?></span></li>
-          <?php endif; ?>
-          <?php if ($duration !== ''): ?>
-            <li><span class="k">Czas podróży:</span> <span class="v"><?= \TyfloPodroznik\Html::e($duration) ?></span></li>
-          <?php endif; ?>
-          <li><span class="k">Przesiadki:</span> <span class="v"><?= (int)$changes ?></span></li>
-          <li>
-            <span class="k">Bilet online:</span>
-            <span class="v"><?= $sellable ? '<span class="ok">możliwy</span>' : '<span class="warn">brak / niedostępny</span>' ?></span>
-          </li>
-        </ul>
+          Przesiadki: <?= (int)$changes ?> •
+          Bilet online: <?= $sellable ? '<span class="ok">możliwy</span>' : '<span class="warn">brak / niedostępny</span>' ?>
+        </div>
         <div class="actions">
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>
@@ -126,7 +128,6 @@ foreach (($results['results'] ?? []) as $r) {
               action="<?= \TyfloPodroznik\Html::e($searchAction) ?>"
               target="_blank"
               class="ep-ticket-handoff"
-              aria-label="<?= \TyfloPodroznik\Html::e('Kup bilet — wynik ' . ((int)$idx + 1)) ?>"
               data-ep-ticket-handoff="1"
               data-ep-define-url="<?= \TyfloPodroznik\Html::e($defineTicketUrl) ?>"
               data-ep-window="<?= \TyfloPodroznik\Html::e('epbuy_' . $tabToken) ?>"
