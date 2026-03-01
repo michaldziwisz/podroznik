@@ -92,14 +92,22 @@ foreach (($results['results'] ?? []) as $r) {
             <span class="meta">(<?= \TyfloPodroznik\Html::e($duration) ?>)</span>
           <?php endif; ?>
         </h3>
-        <dl class="meta">
-          <?php if ($fromDate !== ''): ?><dt>Odjazd</dt><dd><?= \TyfloPodroznik\Html::e(trim($fromTime . ' ' . $fromDate)) ?></dd><?php endif; ?>
-          <?php if ($toDate !== ''): ?><dt>Przyjazd</dt><dd><?= \TyfloPodroznik\Html::e(trim($toTime . ' ' . $toDate)) ?></dd><?php endif; ?>
-          <?php if ($duration !== ''): ?><dt>Czas podróży</dt><dd><?= \TyfloPodroznik\Html::e($duration) ?></dd><?php endif; ?>
-          <dt>Przesiadki</dt><dd><?= (int)$changes ?></dd>
-          <dt>Bilet online</dt>
-          <dd><?= $sellable ? '<span class="ok">możliwy</span>' : '<span class="warn">brak / niedostępny</span>' ?></dd>
-        </dl>
+        <ul class="meta-kv">
+          <?php if ($fromDate !== ''): ?>
+            <li><span class="k">Odjazd:</span> <span class="v"><?= \TyfloPodroznik\Html::e(trim($fromTime . ' ' . $fromDate)) ?></span></li>
+          <?php endif; ?>
+          <?php if ($toDate !== ''): ?>
+            <li><span class="k">Przyjazd:</span> <span class="v"><?= \TyfloPodroznik\Html::e(trim($toTime . ' ' . $toDate)) ?></span></li>
+          <?php endif; ?>
+          <?php if ($duration !== ''): ?>
+            <li><span class="k">Czas podróży:</span> <span class="v"><?= \TyfloPodroznik\Html::e($duration) ?></span></li>
+          <?php endif; ?>
+          <li><span class="k">Przesiadki:</span> <span class="v"><?= (int)$changes ?></span></li>
+          <li>
+            <span class="k">Bilet online:</span>
+            <span class="v"><?= $sellable ? '<span class="ok">możliwy</span>' : '<span class="warn">brak / niedostępny</span>' ?></span>
+          </li>
+        </ul>
         <div class="actions">
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>

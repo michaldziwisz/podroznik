@@ -88,11 +88,11 @@ if (is_array($matchedResult)) {
     ?>
     <section class="card stack" aria-label="Odcinek <?= (int)$i + 1 ?>">
       <h2>Odcinek <?= (int)$i + 1 ?></h2>
-      <dl>
-        <?php if ($line !== ''): ?><dt>Linia / typ</dt><dd><?= \TyfloPodroznik\Html::e($line) ?></dd><?php endif; ?>
-        <?php if ($carrier !== ''): ?><dt>Przewoźnik</dt><dd><?= \TyfloPodroznik\Html::e($carrier) ?></dd><?php endif; ?>
-        <?php if ($duration !== ''): ?><dt>Czas odcinka</dt><dd><?= \TyfloPodroznik\Html::e($duration) ?></dd><?php endif; ?>
-      </dl>
+      <ul class="meta-kv">
+        <?php if ($line !== ''): ?><li><span class="k">Linia / typ:</span> <span class="v"><?= \TyfloPodroznik\Html::e($line) ?></span></li><?php endif; ?>
+        <?php if ($carrier !== ''): ?><li><span class="k">Przewoźnik:</span> <span class="v"><?= \TyfloPodroznik\Html::e($carrier) ?></span></li><?php endif; ?>
+        <?php if ($duration !== ''): ?><li><span class="k">Czas odcinka:</span> <span class="v"><?= \TyfloPodroznik\Html::e($duration) ?></span></li><?php endif; ?>
+      </ul>
 
       <?php if (!empty($seg['remarks'])): ?>
         <details>
