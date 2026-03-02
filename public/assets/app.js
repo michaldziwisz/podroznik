@@ -149,10 +149,15 @@
 
     if (!list || !(list instanceof HTMLElement)) return;
 
+    input.setAttribute('aria-controls', list.id);
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-autocomplete', 'list');
+
     let open = false;
     let activeIndex = -1;
     let items = [];
     let optionButtons = [];
+    let userNavigated = false;
     let debounceTimer = null;
     let abortController = null;
     let lastQuery = '';
@@ -180,6 +185,9 @@
       cancelPending();
       open = false;
       activeIndex = -1;
+      userNavigated = false;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
       list.hidden = true;
       list.innerHTML = '';
       items = [];
@@ -189,6 +197,7 @@
     function ensureOpen() {
       if (open) return;
       open = true;
+      input.setAttribute('aria-expanded', 'true');
       list.hidden = false;
     }
 
@@ -199,9 +208,19 @@
       }
     }
 
+    function updateActiveDescendant() {
+      if (!open || !userNavigated || activeIndex < 0 || !optionButtons[activeIndex]) {
+        input.removeAttribute('aria-activedescendant');
+        return;
+      }
+      input.setAttribute('aria-activedescendant', optionButtons[activeIndex].id);
+    }
+
     function renderList() {
       list.innerHTML = '';
       optionButtons = [];
+      userNavigated = false;
+      input.removeAttribute('aria-activedescendant');
 
       if (items.length === 0) {
         closeList();
@@ -215,6 +234,7 @@
         const li = document.createElement('li');
         const btn = document.createElement('button');
         btn.type = 'button';
+        btn.id = `${list.id}_opt_${i}`;
         btn.className = `ac-option${i === activeIndex ? ' is-active' : ''}`;
         btn.tabIndex = -1;
         btn.dataset.value = s.value || '';
@@ -295,6 +315,7 @@
       if (!open || items.length === 0) return;
       activeIndex = clamp(nextIndex, 0, items.length - 1);
       syncActiveClass();
+      updateActiveDescendant();
       const activeEl = optionButtons[activeIndex];
       if (activeEl) {
         activeEl.scrollIntoView({ block: 'nearest' });
@@ -400,6 +421,8 @@
       if (hidden && hidden instanceof HTMLInputElement) {
         hidden.value = '';
       }
+      userNavigated = false;
+      input.removeAttribute('aria-activedescendant');
       scheduleFetch();
     });
 
@@ -408,25 +431,31 @@
         if (!open && normalizeWhitespace(input.value).length >= minChars) {
           scheduleFetch();
         }
-        if (open && optionButtons.length > 0) {
+        if (open && items.length > 0) {
           ev.preventDefault();
-          if (activeIndex < 0) activeIndex = 0;
-          syncActiveClass();
-          optionButtons[activeIndex].focus();
+          const nextIndex =
+            userNavigated
+              ? (activeIndex < 0 ? 0 : (activeIndex + 1) % items.length)
+              : (activeIndex < 0 ? 0 : activeIndex);
+          userNavigated = true;
+          setActive(nextIndex);
         }
         return;
       }
       if (ev.key === 'ArrowUp') {
-        if (open && optionButtons.length > 0) {
+        if (open && items.length > 0) {
           ev.preventDefault();
-          if (activeIndex < 0) activeIndex = optionButtons.length - 1;
-          syncActiveClass();
-          optionButtons[activeIndex].focus();
+          const nextIndex =
+            userNavigated
+              ? (activeIndex < 0 ? items.length - 1 : (activeIndex - 1 + items.length) % items.length)
+              : (activeIndex < 0 ? items.length - 1 : activeIndex);
+          userNavigated = true;
+          setActive(nextIndex);
         }
         return;
       }
       if (ev.key === 'Enter') {
-        if (open && activeIndex >= 0 && items.length > 0) {
+        if (open && userNavigated && activeIndex >= 0 && items.length > 0) {
           ev.preventDefault();
           selectIndex(activeIndex, { focusInput: true });
         }
@@ -440,7 +469,7 @@
         return;
       }
       if (ev.key === 'Tab') {
-        if (open && activeIndex >= 0 && items.length > 0) {
+        if (open && userNavigated && activeIndex >= 0 && items.length > 0) {
           selectIndex(activeIndex);
         }
       }
