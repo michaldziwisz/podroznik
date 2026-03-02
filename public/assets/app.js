@@ -408,16 +408,20 @@
         if (!open && normalizeWhitespace(input.value).length >= minChars) {
           scheduleFetch();
         }
-        if (items.length > 0) {
+        if (open && optionButtons.length > 0) {
           ev.preventDefault();
-          setActive(activeIndex < 0 ? 0 : activeIndex + 1);
+          if (activeIndex < 0) activeIndex = 0;
+          syncActiveClass();
+          optionButtons[activeIndex].focus();
         }
         return;
       }
       if (ev.key === 'ArrowUp') {
-        if (items.length > 0) {
+        if (open && optionButtons.length > 0) {
           ev.preventDefault();
-          setActive(activeIndex < 0 ? 0 : activeIndex - 1);
+          if (activeIndex < 0) activeIndex = optionButtons.length - 1;
+          syncActiveClass();
+          optionButtons[activeIndex].focus();
         }
         return;
       }
