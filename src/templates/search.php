@@ -11,7 +11,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
   <h1>Wyszukiwarka połączeń</h1>
 
   <div class="card">
-    <form method="post" action="/search" class="stack" novalidate aria-label="Wyszukiwanie połączeń">
+    <form method="post" action="/search" class="stack" novalidate>
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
       <fieldset class="grid-2">
@@ -92,7 +92,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            <input type="checkbox" name="omit_time" value="1" <?= $omitTimeChecked ?>>
 	            Pomiń godzinę (pokaż połączenia z całego dnia)
           </label>
-          <div class="help">Jeśli podasz godzinę, „Pomiń godzinę” zostanie zignorowane.</div>
+          <div class="help">Jeśli podasz godzinę, pokażemy połączenia od tej godziny.</div>
         </div>
       </fieldset>
 
@@ -172,8 +172,8 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         })();
       </script>
 
-      <fieldset>
-        <legend>Ustawienia wyszukiwania</legend>
+      <details class="card">
+        <summary>Ustawienia wyszukiwania (opcjonalnie)</summary>
         <div class="stack">
           <label><input type="checkbox" name="prefer_direct" value="1" checked> Preferuj bez przesiadek</label>
           <label><input type="checkbox" name="only_online" value="1"> Tylko bilet online</label>
@@ -198,10 +198,10 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
             </div>
           </fieldset>
         </div>
-      </fieldset>
+      </details>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-        <div class="field" role="group" aria-label="Weryfikacja antyspam">
+        <div class="field">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
           <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
           <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>

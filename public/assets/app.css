@@ -225,6 +225,12 @@ fieldset{
 }
 legend{font-weight: 700; padding: 0 6px;}
 
+summary{
+  cursor: pointer;
+  font-weight: 700;
+}
+details[open] > summary{margin-bottom: var(--gap);}
+
 .grid-2{display: grid; gap: var(--gap);}
 @media (min-width: 820px){
   .grid-2{grid-template-columns: 1fr 1fr;}

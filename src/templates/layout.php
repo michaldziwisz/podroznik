@@ -30,12 +30,12 @@
             <a class="btn small" href="/timetable">Rozkład z przystanku</a>
             <a class="btn small" href="/contact">Zgłoś problem</a>
           </nav>
-          <form class="ui-controls" method="post" action="/ui" aria-label="Ustawienia wyglądu">
+          <form class="ui-controls" method="post" action="/ui">
             <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
             <input type="hidden" name="back" value="<?= \TyfloPodroznik\Html::e(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/') ?>">
             <button class="btn small" type="submit" name="action" value="toggle_contrast">Kontrast</button>
-            <button class="btn small" type="submit" name="action" value="font_dec" aria-label="Zmniejsz czcionkę">A−</button>
-            <button class="btn small" type="submit" name="action" value="font_inc" aria-label="Zwiększ czcionkę">A+</button>
+            <button class="btn small" type="submit" name="action" value="font_dec">Czcionka −</button>
+            <button class="btn small" type="submit" name="action" value="font_inc">Czcionka +</button>
           </form>
         </div>
       </div>
@@ -43,7 +43,7 @@
 
     <main id="main" class="wrap" tabindex="-1">
       <?php if (is_array($flash) && isset($flash['message'])): ?>
-        <div class="card stack" role="status" aria-live="polite">
+        <div class="card stack">
           <strong class="<?= \TyfloPodroznik\Html::e((string)($flash['level'] ?? '')) ?>">
             <?= \TyfloPodroznik\Html::e((string)$flash['message']) ?>
           </strong>
@@ -55,9 +55,8 @@
 
     <footer class="site">
       <div class="wrap">
-        <p>
-          Źródło danych: <a href="https://www.e-podroznik.pl/">e‑podroznik.pl</a>. To jest niezależny frontend ukierunkowany na dostępność.
-        </p>
+        <p><a href="https://www.e-podroznik.pl/">Źródło danych: e‑podroznik.pl</a></p>
+        <p class="help">To jest niezależny frontend ukierunkowany na dostępność.</p>
       </div>
     </footer>
   </body>
