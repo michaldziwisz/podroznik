@@ -28,6 +28,10 @@ $toTime = (string)($defaults['to_time'] ?? '');
 	            autocomplete="off"
 	            required
 	            value="<?= \TyfloPodroznik\Html::e($q) ?>"
+	            role="combobox"
+	            aria-autocomplete="list"
+	            aria-expanded="false"
+	            aria-controls="stop_suggestions"
 	            data-ep-suggest="1"
 	            data-ep-kind="SOURCE"
 	            data-ep-type="STOPS"
@@ -36,7 +40,7 @@ $toTime = (string)($defaults['to_time'] ?? '');
 	          >
 	          <input type="hidden" id="stopV" name="stopV" value="">
 	          <div id="q_help" class="help">Wpisz nazwę miasta lub przystanku. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź. Uwaga: część punktów (np. „dworzec”, „door to door”) może nie mieć rozkładu przystankowego („tabliczki”).</div>
-	          <ul id="stop_suggestions" class="autocomplete-list" hidden></ul>
+	          <ul id="stop_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>
 	      </fieldset>
 

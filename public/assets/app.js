@@ -149,14 +149,16 @@
 
     if (!list || !(list instanceof HTMLElement)) return;
 
+    input.setAttribute('role', 'combobox');
     input.setAttribute('aria-controls', list.id);
     input.setAttribute('aria-expanded', 'false');
     input.setAttribute('aria-autocomplete', 'list');
+    list.setAttribute('role', 'listbox');
 
     let open = false;
     let activeIndex = -1;
     let items = [];
-    let optionButtons = [];
+    let optionEls = [];
     let userNavigated = false;
     let debounceTimer = null;
     let abortController = null;
@@ -191,7 +193,7 @@
       list.hidden = true;
       list.innerHTML = '';
       items = [];
-      optionButtons = [];
+      optionEls = [];
     }
 
     function ensureOpen() {
@@ -202,23 +204,24 @@
     }
 
     function syncActiveClass() {
-      if (activeIndex < 0 || optionButtons.length === 0) return;
-      for (let i = 0; i < optionButtons.length; i++) {
-        optionButtons[i].classList.toggle('is-active', i === activeIndex);
+      if (optionEls.length === 0) return;
+      for (let i = 0; i < optionEls.length; i++) {
+        const isActive = i === activeIndex;
+        optionEls[i].classList.toggle('is-active', isActive);
       }
     }
 
     function updateActiveDescendant() {
-      if (!open || !userNavigated || activeIndex < 0 || !optionButtons[activeIndex]) {
+      if (!open || !userNavigated || activeIndex < 0 || !optionEls[activeIndex]) {
         input.removeAttribute('aria-activedescendant');
         return;
       }
-      input.setAttribute('aria-activedescendant', optionButtons[activeIndex].id);
+      input.setAttribute('aria-activedescendant', optionEls[activeIndex].id);
     }
 
     function renderList() {
       list.innerHTML = '';
-      optionButtons = [];
+      optionEls = [];
       userNavigated = false;
       input.removeAttribute('aria-activedescendant');
 
@@ -232,81 +235,38 @@
       for (let i = 0; i < items.length; i++) {
         const s = items[i];
         const li = document.createElement('li');
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.id = `${list.id}_opt_${i}`;
-        btn.className = `ac-option${i === activeIndex ? ' is-active' : ''}`;
-        btn.tabIndex = -1;
-        btn.dataset.value = s.value || '';
-        btn.dataset.label = s.label || '';
-        btn.dataset.info = s.info || '';
+        li.id = `${list.id}_opt_${i}`;
+        li.setAttribute('role', 'option');
+        li.className = i === activeIndex ? 'is-active' : '';
+        li.dataset.value = s.value || '';
+        li.dataset.label = s.label || '';
+        li.dataset.info = s.info || '';
 
         const label = document.createElement('span');
         label.className = 'ac-label';
         label.textContent = s.label || '';
-        btn.appendChild(label);
+        li.appendChild(label);
 
         if (s.info) {
           const info = document.createElement('span');
           info.className = 'ac-info';
           info.textContent = s.info;
-          btn.appendChild(info);
+          li.appendChild(info);
         }
 
-        btn.addEventListener('focus', () => {
-          if (!open) return;
-          activeIndex = i;
-          syncActiveClass();
-        });
-
-        btn.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Escape') {
-            if (open) {
-              ev.preventDefault();
-              closeList();
-              input.focus();
-            }
-            return;
-          }
-
-          if (ev.key === 'ArrowDown') {
-            if (optionButtons.length > 0 && i < optionButtons.length - 1) {
-              ev.preventDefault();
-              optionButtons[i + 1].focus();
-            }
-            return;
-          }
-
-          if (ev.key === 'ArrowUp') {
-            ev.preventDefault();
-            if (i === 0) {
-              input.focus();
-              return;
-            }
-            optionButtons[i - 1].focus();
-            return;
-          }
-
-          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
-            ev.preventDefault();
-            selectIndex(i, { focusInput: true });
-          }
-        });
-
         let handled = false;
-        btn.addEventListener('pointerdown', (ev) => {
+        li.addEventListener('pointerdown', (ev) => {
           handled = true;
           ev.preventDefault();
           selectIndex(i, { focusInput: true });
         });
-        btn.addEventListener('click', (ev) => {
+        li.addEventListener('click', (ev) => {
           if (handled) return;
           ev.preventDefault();
           selectIndex(i, { focusInput: true });
         });
 
-        optionButtons.push(btn);
-        li.appendChild(btn);
+        optionEls.push(li);
         list.appendChild(li);
       }
     }
@@ -316,7 +276,7 @@
       activeIndex = clamp(nextIndex, 0, items.length - 1);
       syncActiveClass();
       updateActiveDescendant();
-      const activeEl = optionButtons[activeIndex];
+      const activeEl = optionEls[activeIndex];
       if (activeEl) {
         activeEl.scrollIntoView({ block: 'nearest' });
       }

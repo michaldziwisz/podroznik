@@ -26,6 +26,10 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            autocomplete="off"
 	            required
 	            value="<?= \TyfloPodroznik\Html::e((string)($defaults['from'] ?? '')) ?>"
+	            role="combobox"
+	            aria-autocomplete="list"
+	            aria-expanded="false"
+	            aria-controls="from_suggestions"
 	            data-ep-suggest="1"
 	            data-ep-kind="SOURCE"
 	            data-ep-type="ALL"
@@ -34,7 +38,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	          >
 	          <input type="hidden" id="fromV" name="fromV" value="">
 	          <div id="from_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź. Pozycje z dopiskiem „door to door” oznaczają przewozy od adresu do adresu (bez konkretnego przystanku).</div>
-	          <ul id="from_suggestions" class="autocomplete-list" hidden></ul>
+	          <ul id="from_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>
 	        <div class="field">
 	          <label for="to">Do (miejsce docelowe)</label>
@@ -46,6 +50,10 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            autocomplete="off"
 	            required
 	            value="<?= \TyfloPodroznik\Html::e((string)($defaults['to'] ?? '')) ?>"
+	            role="combobox"
+	            aria-autocomplete="list"
+	            aria-expanded="false"
+	            aria-controls="to_suggestions"
 	            data-ep-suggest="1"
 	            data-ep-kind="DESTINATION"
 	            data-ep-type="ALL"
@@ -54,7 +62,7 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	          >
 	          <input type="hidden" id="toV" name="toV" value="">
 	          <div id="to_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź. Pozycje z dopiskiem „door to door” oznaczają przewozy od adresu do adresu (bez konkretnego przystanku).</div>
-	          <ul id="to_suggestions" class="autocomplete-list" hidden></ul>
+	          <ul id="to_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>
 	      </fieldset>
 

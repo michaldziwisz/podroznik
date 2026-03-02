@@ -185,34 +185,22 @@ label .help{display: block;}
   overflow: auto;
 }
 .autocomplete-list li{
-  border-bottom: 1px solid var(--border);
-}
-.autocomplete-list li:last-child{border-bottom: none;}
-.autocomplete-list .ac-option{
-  appearance: none;
-  width: 100%;
-  display: block;
   padding: 8px 10px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
-.autocomplete-list .ac-option:hover{text-decoration: underline;}
-.autocomplete-list .ac-option.is-active{
+.autocomplete-list li:last-child{border-bottom: none;}
+.autocomplete-list li:hover{text-decoration: underline;}
+.autocomplete-list li.is-active{
   background: var(--focus);
   color: #fff;
   text-decoration: none;
 }
-.autocomplete-list .ac-option.is-active:focus{outline-color: #fff;}
-html.ui-contrast .autocomplete-list .ac-option.is-active{color: #000;}
-html.ui-contrast .autocomplete-list .ac-option.is-active:focus{outline-color: #000;}
+html.ui-contrast .autocomplete-list li.is-active{color: #000;}
 .autocomplete-list .ac-label{display: block; font-weight: 700;}
 .autocomplete-list .ac-info{display: block; font-size: 0.9rem; color: var(--muted);}
-.autocomplete-list .ac-option.is-active .ac-info{color: #fff;}
-html.ui-contrast .autocomplete-list .ac-option.is-active .ac-info{color: #000;}
+.autocomplete-list li.is-active .ac-info{color: #fff;}
+html.ui-contrast .autocomplete-list li.is-active .ac-info{color: #000;}
 
 .field{
   display: grid;
