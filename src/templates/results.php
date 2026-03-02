@@ -22,9 +22,7 @@ foreach (($results['results'] ?? []) as $r) {
   <h1>Wyniki wyszukiwania</h1>
 
   <div class="card stack">
-    <div>
-      <strong>Liczba wyników:</strong> <?= $count ?>
-    </div>
+    <div>Liczba wyników: <?= $count ?></div>
     <?php if ($count === 0): ?>
       <div class="help">
         Brak wyników dla wybranych ustawień. Spróbuj zaznaczyć inne środki transportu albo wyłączyć „Preferuj bez przesiadek”.
@@ -99,17 +97,18 @@ foreach (($results['results'] ?? []) as $r) {
         <h3>
           <?= \TyfloPodroznik\Html::e($fromTime) ?> <?= \TyfloPodroznik\Html::e($fromStop) ?>
           → <?= \TyfloPodroznik\Html::e($toTime) ?> <?= \TyfloPodroznik\Html::e($toStop) ?>
-          <?php if ($duration !== ''): ?>
-            <span class="meta">(<?= \TyfloPodroznik\Html::e($duration) ?>)</span>
-          <?php endif; ?>
+          <?php if ($duration !== ''): ?> (<?= \TyfloPodroznik\Html::e($duration) ?>)<?php endif; ?>
         </h3>
-        <div class="help">
-          <?php if ($dateInfo !== ''): ?>
-            <?= \TyfloPodroznik\Html::e($dateInfo) ?> •
-          <?php endif; ?>
-          Przesiadki: <?= (int)$changes ?> •
-          Bilet online: <?= $sellable ? '<span class="ok">możliwy</span>' : '<span class="warn">brak / niedostępny</span>' ?>
-        </div>
+        <?php
+          $metaParts = [];
+          if ($dateInfo !== '') {
+            $metaParts[] = $dateInfo;
+          }
+          $metaParts[] = 'Przesiadki: ' . (int)$changes;
+          $metaParts[] = 'Bilet online: ' . ($sellable ? 'możliwy' : 'brak / niedostępny');
+          $metaText = implode(' • ', $metaParts);
+        ?>
+        <div class="help"><?= \TyfloPodroznik\Html::e($metaText) ?></div>
         <div class="actions">
           <?php if ($resId !== ''): ?>
             <a class="btn" href="<?= \TyfloPodroznik\Html::url('/result', ['id' => $resId]) ?>">Szczegóły</a>
