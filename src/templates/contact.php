@@ -23,7 +23,7 @@ $reportId = is_array($sent) ? (string)($sent['reportId'] ?? '') : '';
   </div>
 
   <?php if ($issueUrl !== '' || $reportId !== ''): ?>
-    <div class="card stack" role="status" aria-live="polite">
+    <div class="card stack">
       <strong class="ok">Zgłoszenie wysłane.</strong>
       <?php if ($issueUrl !== ''): ?>
         <div>
@@ -37,7 +37,7 @@ $reportId = is_array($sent) ? (string)($sent['reportId'] ?? '') : '';
   <?php endif; ?>
 
   <div class="card">
-    <form method="post" action="/contact/send" class="stack" novalidate aria-label="Formularz zgłoszenia">
+    <form method="post" action="/contact/send" class="stack" novalidate>
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
       <fieldset>

@@ -13,7 +13,7 @@ $toTime = (string)($defaults['to_time'] ?? '');
   <h1>Rozkład jazdy z przystanku</h1>
 
   <div class="card">
-    <form method="post" action="/timetable/search" class="stack" novalidate aria-label="Wyszukiwanie rozkładu z przystanku">
+    <form method="post" action="/timetable/search" class="stack" novalidate>
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
 	      <fieldset>
@@ -28,21 +28,15 @@ $toTime = (string)($defaults['to_time'] ?? '');
 	            autocomplete="off"
 	            required
 	            value="<?= \TyfloPodroznik\Html::e($q) ?>"
-	            role="combobox"
-	            aria-autocomplete="list"
-	            aria-expanded="false"
-	            aria-controls="stop_suggestions"
 	            data-ep-suggest="1"
 	            data-ep-kind="SOURCE"
 	            data-ep-type="STOPS"
 	            data-ep-hidden="stopV"
 	            data-ep-list="stop_suggestions"
-	            data-ep-status="q_status"
 	          >
 	          <input type="hidden" id="stopV" name="stopV" value="">
 	          <div id="q_help" class="help">Wpisz nazwę miasta lub przystanku. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź. Uwaga: część punktów (np. „dworzec”, „door to door”) może nie mieć rozkładu przystankowego („tabliczki”).</div>
-	          <div id="q_status" class="sr-only" aria-live="polite"></div>
-	          <ul id="stop_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
+	          <ul id="stop_suggestions" class="autocomplete-list" hidden></ul>
 	        </div>
 	      </fieldset>
 
@@ -63,10 +57,10 @@ $toTime = (string)($defaults['to_time'] ?? '');
 	          <input id="to_time" name="to_time" type="time" step="60" autocomplete="off" placeholder="HH:MM" value="<?= \TyfloPodroznik\Html::e($toTime) ?>">
 	          <div class="help">Jeśli puste — bez górnego limitu.</div>
 	        </div>
-	      </fieldset>
+      </fieldset>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-        <div class="field" role="group" aria-label="Weryfikacja antyspam">
+        <div class="field">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
           <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
           <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>

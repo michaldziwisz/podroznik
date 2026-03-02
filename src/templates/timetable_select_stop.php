@@ -14,7 +14,7 @@ $otherSuggestions = (isset($otherSuggestions) && is_array($otherSuggestions)) ? 
   <p class="help">Wybierz właściwy przystanek i pokaż rozkład jazdy.</p>
 
   <div class="card">
-    <form method="post" action="/timetable/search" class="stack" aria-label="Wybór przystanku">
+    <form method="post" action="/timetable/search" class="stack">
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
       <input type="hidden" name="stage" value="select_stop">
 
@@ -79,7 +79,7 @@ $otherSuggestions = (isset($otherSuggestions) && is_array($otherSuggestions)) ? 
       <?php endif; ?>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-        <div class="field" role="group" aria-label="Weryfikacja antyspam">
+        <div class="field">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
           <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
           <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>

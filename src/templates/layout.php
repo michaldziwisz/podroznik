@@ -4,6 +4,13 @@
 /** @var \TyfloPodroznik\UiPrefs $ui */
 /** @var string $csrf */
 /** @var array|null $flash */
+
+$cssPath = __DIR__ . '/../../public/assets/app.css';
+$jsPath = __DIR__ . '/../../public/assets/app.js';
+$cssVer = is_file($cssPath) ? (string)filemtime($cssPath) : '';
+$jsVer = is_file($jsPath) ? (string)filemtime($jsPath) : '';
+$cssHref = '/assets/app.css' . ($cssVer !== '' ? ('?v=' . rawurlencode($cssVer)) : '');
+$jsSrc = '/assets/app.js' . ($jsVer !== '' ? ('?v=' . rawurlencode($jsVer)) : '');
 ?>
 <!doctype html>
 <html lang="pl" class="<?= \TyfloPodroznik\Html::e($ui->htmlClass()) ?>">
@@ -11,8 +18,8 @@
     <meta charset="utf-8">
 	    <meta name="viewport" content="width=device-width, initial-scale=1">
 	    <title><?= \TyfloPodroznik\Html::e($title) ?> — Podróżnik Tyflo</title>
-	    <link rel="stylesheet" href="/assets/app.css">
-	    <script src="/assets/app.js" defer></script>
+	    <link rel="stylesheet" href="<?= \TyfloPodroznik\Html::e($cssHref) ?>">
+	    <script src="<?= \TyfloPodroznik\Html::e($jsSrc) ?>" defer></script>
   </head>
   <body>
     <header class="site">

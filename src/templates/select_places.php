@@ -13,7 +13,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
   <p class="help">Znaleźliśmy kilka możliwych dopasowań. Wybierz właściwe miejsca i kontynuuj.</p>
 
   <div class="card">
-    <form method="post" action="/search" class="stack" aria-label="Wybór miejsc">
+    <form method="post" action="/search" class="stack">
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
       <input type="hidden" name="stage" value="select_places">
 
@@ -66,7 +66,7 @@ $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
       </fieldset>
 
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
-        <div class="field" role="group" aria-label="Weryfikacja antyspam">
+        <div class="field">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
           <div class="cf-turnstile" data-sitekey="<?= \TyfloPodroznik\Html::e($turnstileSiteKey) ?>"></div>
           <noscript><div class="error">Aby wysłać formularz, włącz JavaScript (Turnstile).</div></noscript>

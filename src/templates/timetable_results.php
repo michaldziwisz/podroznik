@@ -29,7 +29,7 @@ foreach ($groups as $g) {
 <div class="stack" id="timetable">
   <h1>Rozkład jazdy</h1>
 
-  <div class="card stack" role="status" aria-live="polite">
+  <div class="card stack">
     <div>
       <strong>Przystanek:</strong>
       <?= \TyfloPodroznik\Html::e($stopName !== '' ? $stopName : $stopId) ?>
@@ -44,7 +44,7 @@ foreach ($groups as $g) {
       <div><strong>Godzina:</strong> <?= \TyfloPodroznik\Html::e($fromTime !== '' ? $fromTime : '00:00') ?><?= $toTime !== '' ? '–' . \TyfloPodroznik\Html::e($toTime) : '' ?></div>
     <?php endif; ?>
 
-    <form method="get" action="/timetable/results" class="stack" novalidate aria-label="Zmień ustawienia rozkładu">
+    <form method="get" action="/timetable/results" class="stack" novalidate>
       <fieldset class="grid-2">
         <legend>Zmień ustawienia</legend>
         <div class="field">
@@ -95,14 +95,14 @@ foreach ($groups as $g) {
     </div>
   <?php endif; ?>
 
-  <div class="results" aria-label="Kierunki i odjazdy">
+  <div class="results">
     <?php foreach ($groups as $g): ?>
       <?php
         $dest = (string)($g['destination'] ?? '');
         $through = (array)($g['through'] ?? []);
         $deps = (array)($g['departures'] ?? []);
       ?>
-      <article class="result" aria-label="Kierunek <?= \TyfloPodroznik\Html::e($dest) ?>">
+      <article class="result">
         <h3><?= \TyfloPodroznik\Html::e($dest !== '' ? $dest : 'Kierunek') ?></h3>
         <?php if (!empty($through)): ?>
           <div class="help">Przez: <?= \TyfloPodroznik\Html::e(implode(', ', $through)) ?></div>

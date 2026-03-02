@@ -34,7 +34,6 @@ if (is_array($matchedResult)) {
         action="<?= \TyfloPodroznik\Html::e($searchAction) ?>"
         target="_blank"
         class="ep-ticket-handoff"
-        aria-label="Kup bilet — szczegóły połączenia"
         data-ep-ticket-handoff="1"
         data-ep-define-url="<?= \TyfloPodroznik\Html::e($defineTicketUrl) ?>"
         data-ep-window="<?= \TyfloPodroznik\Html::e('epbuy_' . $tabToken) ?>"
@@ -70,7 +69,7 @@ if (is_array($matchedResult)) {
   </div>
 
   <?php if (!empty($details['hints'])): ?>
-    <section class="card stack" aria-label="Podpowiedzi nawigacji">
+    <section class="card stack">
       <h2>Podpowiedzi</h2>
       <ol>
         <?php foreach ($details['hints'] as $h): ?>
@@ -86,7 +85,7 @@ if (is_array($matchedResult)) {
       $line = (string)($seg['line'] ?? '');
       $duration = (string)($seg['duration'] ?? '');
     ?>
-    <section class="card stack" aria-label="Odcinek <?= (int)$i + 1 ?>">
+    <section class="card stack">
       <h2>Odcinek <?= (int)$i + 1 ?></h2>
       <ul class="meta-kv">
         <?php if ($line !== ''): ?><li><span class="k">Linia / typ:</span> <span class="v"><?= \TyfloPodroznik\Html::e($line) ?></span></li><?php endif; ?>

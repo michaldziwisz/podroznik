@@ -22,7 +22,7 @@ $toTime = is_array($matchedResult) ? (string)($matchedResult['to']['time'] ?? ''
   </p>
 
   <?php if ($fromTime !== '' || $toTime !== '' || $fromStop !== '' || $toStop !== ''): ?>
-    <div class="card stack" role="status" aria-live="polite">
+    <div class="card stack">
       <strong>Wybrane połączenie:</strong>
       <div><?= \TyfloPodroznik\Html::e(trim($fromTime . ' ' . $fromStop)) ?> → <?= \TyfloPodroznik\Html::e(trim($toTime . ' ' . $toStop)) ?></div>
       <div class="help">ID: <?= \TyfloPodroznik\Html::e($resId) ?></div>
@@ -46,7 +46,6 @@ $toTime = is_array($matchedResult) ? (string)($matchedResult['to']['time'] ?? ''
         action="<?= \TyfloPodroznik\Html::e($searchAction) ?>"
         target="_blank"
         class="ep-ticket-handoff"
-        aria-label="Kup bilet — przekierowanie"
         data-ep-ticket-handoff="1"
         data-ep-define-url="<?= \TyfloPodroznik\Html::e($defineTicketUrl) ?>"
         data-ep-window="<?= \TyfloPodroznik\Html::e('epbuy_' . $tabToken) ?>"

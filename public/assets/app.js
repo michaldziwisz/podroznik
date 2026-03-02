@@ -143,36 +143,23 @@
     const type = (input.dataset.epType || 'ALL').toUpperCase();
     const hiddenId = input.dataset.epHidden || '';
     const listId = input.dataset.epList || '';
-    const statusId = input.dataset.epStatus || '';
 
     const hidden = hiddenId ? document.getElementById(hiddenId) : null;
     const list = listId ? document.getElementById(listId) : null;
-    const status = statusId ? document.getElementById(statusId) : null;
 
     if (!list || !(list instanceof HTMLElement)) return;
-
-    input.setAttribute('aria-controls', list.id);
-    input.setAttribute('aria-expanded', 'false');
 
     let open = false;
     let activeIndex = -1;
     let items = [];
+    let optionButtons = [];
     let debounceTimer = null;
     let abortController = null;
     let lastQuery = '';
-    let lastStatus = '';
 
     const minChars = 2;
     const limit = clamp(parseInt(input.dataset.epLimit || '8', 10) || 8, 1, 20);
     const debounceMs = clamp(parseInt(input.dataset.epDebounceMs || '200', 10) || 200, 0, 2000);
-
-    function setStatus(text) {
-      if (!status) return;
-      const next = normalizeWhitespace(text);
-      if (next === lastStatus) return;
-      lastStatus = next;
-      status.textContent = next;
-    }
 
     function cancelPending() {
       if (debounceTimer) {
@@ -193,22 +180,28 @@
       cancelPending();
       open = false;
       activeIndex = -1;
-      input.setAttribute('aria-expanded', 'false');
-      input.removeAttribute('aria-activedescendant');
       list.hidden = true;
       list.innerHTML = '';
       items = [];
+      optionButtons = [];
     }
 
     function ensureOpen() {
       if (open) return;
       open = true;
-      input.setAttribute('aria-expanded', 'true');
       list.hidden = false;
+    }
+
+    function syncActiveClass() {
+      if (activeIndex < 0 || optionButtons.length === 0) return;
+      for (let i = 0; i < optionButtons.length; i++) {
+        optionButtons[i].classList.toggle('is-active', i === activeIndex);
+      }
     }
 
     function renderList() {
       list.innerHTML = '';
+      optionButtons = [];
 
       if (items.length === 0) {
         closeList();
@@ -220,59 +213,95 @@
       for (let i = 0; i < items.length; i++) {
         const s = items[i];
         const li = document.createElement('li');
-        li.id = `${list.id}_opt_${i}`;
-        li.setAttribute('role', 'option');
-        li.setAttribute('aria-selected', i === activeIndex ? 'true' : 'false');
-        li.dataset.value = s.value || '';
-        li.dataset.label = s.label || '';
-        li.dataset.info = s.info || '';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `ac-option${i === activeIndex ? ' is-active' : ''}`;
+        btn.tabIndex = -1;
+        btn.dataset.value = s.value || '';
+        btn.dataset.label = s.label || '';
+        btn.dataset.info = s.info || '';
 
         const label = document.createElement('span');
         label.className = 'ac-label';
         label.textContent = s.label || '';
-        li.appendChild(label);
+        btn.appendChild(label);
 
         if (s.info) {
           const info = document.createElement('span');
           info.className = 'ac-info';
-          info.setAttribute('aria-hidden', 'true');
           info.textContent = s.info;
-          li.appendChild(info);
+          btn.appendChild(info);
         }
 
+        btn.addEventListener('focus', () => {
+          if (!open) return;
+          activeIndex = i;
+          syncActiveClass();
+        });
+
+        btn.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Escape') {
+            if (open) {
+              ev.preventDefault();
+              closeList();
+              input.focus();
+            }
+            return;
+          }
+
+          if (ev.key === 'ArrowDown') {
+            if (optionButtons.length > 0 && i < optionButtons.length - 1) {
+              ev.preventDefault();
+              optionButtons[i + 1].focus();
+            }
+            return;
+          }
+
+          if (ev.key === 'ArrowUp') {
+            ev.preventDefault();
+            if (i === 0) {
+              input.focus();
+              return;
+            }
+            optionButtons[i - 1].focus();
+            return;
+          }
+
+          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+            ev.preventDefault();
+            selectIndex(i, { focusInput: true });
+          }
+        });
+
         let handled = false;
-        li.addEventListener('pointerdown', (ev) => {
+        btn.addEventListener('pointerdown', (ev) => {
           handled = true;
           ev.preventDefault();
-          selectIndex(i);
+          selectIndex(i, { focusInput: true });
         });
-        li.addEventListener('click', (ev) => {
+        btn.addEventListener('click', (ev) => {
           if (handled) return;
           ev.preventDefault();
-          selectIndex(i);
+          selectIndex(i, { focusInput: true });
         });
 
+        optionButtons.push(btn);
+        li.appendChild(btn);
         list.appendChild(li);
-      }
-
-      if (activeIndex >= 0) {
-        input.setAttribute('aria-activedescendant', `${list.id}_opt_${activeIndex}`);
-      } else {
-        input.removeAttribute('aria-activedescendant');
       }
     }
 
     function setActive(nextIndex) {
       if (!open || items.length === 0) return;
       activeIndex = clamp(nextIndex, 0, items.length - 1);
-      renderList();
-      const activeEl = document.getElementById(`${list.id}_opt_${activeIndex}`);
+      syncActiveClass();
+      const activeEl = optionButtons[activeIndex];
       if (activeEl) {
         activeEl.scrollIntoView({ block: 'nearest' });
       }
     }
 
-    function selectIndex(index) {
+    function selectIndex(index, { focusInput } = {}) {
       if (index < 0 || index >= items.length) return;
       const s = items[index];
       // Prevent any scheduled fetch from re-opening the list and hijacking the selection.
@@ -282,6 +311,9 @@
         hidden.value = s.value || '';
       }
       closeList();
+      if (focusInput) {
+        input.focus();
+      }
     }
 
     async function fetchSuggestions(query) {
@@ -321,7 +353,6 @@
         const q = normalizeWhitespace(input.value);
         if (q.length < minChars) {
           closeList();
-          setStatus('');
           return;
         }
         if (q === lastQuery && open) {
@@ -348,29 +379,19 @@
 
           if (items.length === 0) {
             closeList();
-            setStatus('Brak podpowiedzi');
             return;
           }
 
-          setStatus('');
-
-          // If the user already navigated the list, keep their selection when the list refreshes.
-          // This avoids "jumping cursor" issues (e.g. selecting an option, then it snaps back to index 0).
+          // Keep the active index stable when refreshing suggestions.
           let nextIndex = -1;
-          if (prevActiveValue) {
-            nextIndex = items.findIndex((s) => s.value === prevActiveValue);
-          }
-          if (nextIndex < 0 && prevActiveLabel) {
-            nextIndex = items.findIndex((s) => s.label === prevActiveLabel);
-          }
+          if (prevActiveValue) nextIndex = items.findIndex((s) => s.value === prevActiveValue);
+          if (nextIndex < 0 && prevActiveLabel) nextIndex = items.findIndex((s) => s.label === prevActiveLabel);
           activeIndex = nextIndex >= 0 ? nextIndex : 0;
 
           renderList();
         } catch (e) {
           if (e && e.name === 'AbortError') return;
           closeList();
-          const msg = e && typeof e.message === 'string' ? normalizeWhitespace(e.message) : '';
-          setStatus(msg || 'Nie udało się pobrać podpowiedzi.');
         }
       }, debounceMs);
     }
@@ -409,7 +430,7 @@
       if (ev.key === 'Enter') {
         if (open && activeIndex >= 0 && items.length > 0) {
           ev.preventDefault();
-          selectIndex(activeIndex);
+          selectIndex(activeIndex, { focusInput: true });
         }
         return;
       }
@@ -427,8 +448,20 @@
       }
     });
 
+    function closeIfFocusOutside() {
+      const active = document.activeElement;
+      if (!active) return closeList();
+      if (active === input) return;
+      if (list.contains(active)) return;
+      closeList();
+    }
+
     input.addEventListener('blur', () => {
-      window.setTimeout(() => closeList(), 300);
+      window.setTimeout(() => closeIfFocusOutside(), 0);
+    });
+
+    list.addEventListener('focusout', () => {
+      window.setTimeout(() => closeIfFocusOutside(), 0);
     });
 
     document.addEventListener('click', (ev) => {
