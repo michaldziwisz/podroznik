@@ -403,12 +403,6 @@
       scheduleFetch();
     });
 
-    input.addEventListener('focus', () => {
-      if (normalizeWhitespace(input.value).length >= minChars) {
-        scheduleFetch();
-      }
-    });
-
     input.addEventListener('keydown', (ev) => {
       if (ev.key === 'ArrowDown') {
         if (!open && normalizeWhitespace(input.value).length >= minChars) {
