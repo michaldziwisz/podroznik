@@ -253,7 +253,7 @@ final class EpodroznikClient
         return $this->get('/public/searchingResultExtended.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&resultId=' . rawurlencode($resId));
     }
 
-    public function getGeneralTimetableStop(string $stopId): string
+    public function getGeneralTimetableStop(string $stopId, bool $forceRefresh = false): string
     {
         $this->ensureInitialized();
         $stopId = trim($stopId);
@@ -262,7 +262,7 @@ final class EpodroznikClient
         }
 
         $cacheTtl = $this->timetableCacheTtl();
-        if ($cacheTtl > 0) {
+        if (!$forceRefresh && $cacheTtl > 0) {
             $cached = $this->readTimetableCache($stopId, $cacheTtl);
             if ($cached !== null) {
                 return $cached;
@@ -270,7 +270,7 @@ final class EpodroznikClient
         }
 
         $cacheLock = $cacheTtl > 0 ? $this->acquireTimetableCacheLock($stopId) : null;
-        if (is_resource($cacheLock)) {
+        if (!$forceRefresh && is_resource($cacheLock)) {
             $cached = $this->readTimetableCache($stopId, $cacheTtl);
             if ($cached !== null) {
                 flock($cacheLock, LOCK_UN);

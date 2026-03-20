@@ -30,7 +30,14 @@ Przykład crona:
 */5 * * * * /var/www/podroznik.tyflo.eu.org/scripts/monitoring/monitor.sh
 ```
 
+Opcjonalne warmowanie cache rozkładów przystankowych:
+
+```cron
+*/10 * * * * /var/www/podroznik.tyflo.eu.org/scripts/monitoring/warm_timetable_cache.sh
+```
+
 Konfigurację sygnalisty dla crona możesz podać przez plik `~/.config/podroznik/monitor.env` (ścieżkę da się zmienić zmienną `PODROZNIK_MONITOR_ENV_FILE`). Ten plik **nie** jest w repo, więc można tam trzymać np. `SYGNALISTA_APP_TOKEN`.
+Ten sam plik może też trzymać `PODROZNIK_TIMETABLE_WARM_STOP_IDS` dla warmera cache.
 
 ## Zgłoszenia (Sygnalista)
 

@@ -131,7 +131,7 @@ final class UpstreamCheck
         // A stable stop that responds noticeably faster than the busiest Warsaw hubs.
         $stopId = '103250'; // Sieradz
 
-        $html = $client->getGeneralTimetableStop($stopId);
+        $html = $client->getGeneralTimetableStop($stopId, forceRefresh: true);
         $parser = new TimetableParser();
         $tt = $parser->parseGeneralTimetableHtml($html);
 
