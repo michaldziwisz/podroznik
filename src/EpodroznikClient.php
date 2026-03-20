@@ -9,6 +9,7 @@ final class EpodroznikClient
     private const BASE_HOST = 'www.e-podroznik.pl';
     private const DEFAULT_TIMEOUT = 35;
     private const TIMETABLE_TIMEOUT = 120;
+    private const TIMETABLE_CACHE_TTL = 900;
 
     private ?\CurlHandle $curl = null;
 
@@ -260,16 +261,44 @@ final class EpodroznikClient
             throw new \RuntimeException('Brak stopId.');
         }
 
+        $cacheTtl = $this->timetableCacheTtl();
+        if ($cacheTtl > 0) {
+            $cached = $this->readTimetableCache($stopId, $cacheTtl);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $cacheLock = $cacheTtl > 0 ? $this->acquireTimetableCacheLock($stopId) : null;
+        if (is_resource($cacheLock)) {
+            $cached = $this->readTimetableCache($stopId, $cacheTtl);
+            if ($cached !== null) {
+                flock($cacheLock, LOCK_UN);
+                fclose($cacheLock);
+                return $cached;
+            }
+        }
+
         $timeout = $this->timetableTimeout();
-        $url = '/public/generalTimetable.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&stopId=' . rawurlencode($stopId);
-        $html = $this->get($url, timeout: $timeout);
-        if (trim($html) === '') {
-            $this->resetRemoteSession();
-            $this->ensureInitialized();
+        try {
             $url = '/public/generalTimetable.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&stopId=' . rawurlencode($stopId);
             $html = $this->get($url, timeout: $timeout);
+            if (trim($html) === '') {
+                $this->resetRemoteSession();
+                $this->ensureInitialized();
+                $url = '/public/generalTimetable.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&stopId=' . rawurlencode($stopId);
+                $html = $this->get($url, timeout: $timeout);
+            }
+            if ($cacheTtl > 0) {
+                $this->writeTimetableCache($stopId, $html);
+            }
+            return $html;
+        } finally {
+            if (is_resource($cacheLock)) {
+                flock($cacheLock, LOCK_UN);
+                fclose($cacheLock);
+            }
         }
-        return $html;
     }
 
     public function get(string $pathOrUrl, bool $allowRelative = false, ?int $timeout = null): string
@@ -459,6 +488,94 @@ final class EpodroznikClient
             return self::TIMETABLE_TIMEOUT;
         }
         return min($timeout, 180);
+    }
+
+    private function timetableCacheTtl(): int
+    {
+        $ttl = $this->envInt('EPODROZNIK_TIMETABLE_CACHE_TTL');
+        if ($ttl < 60) {
+            return self::TIMETABLE_CACHE_TTL;
+        }
+        return min($ttl, 86400);
+    }
+
+    private function acquireTimetableCacheLock(string $stopId)
+    {
+        $path = $this->timetableCachePath($stopId, '.lock');
+        if ($path === null) {
+            return null;
+        }
+
+        $fp = @fopen($path, 'c');
+        if (!is_resource($fp)) {
+            return null;
+        }
+        if (!flock($fp, LOCK_EX)) {
+            fclose($fp);
+            return null;
+        }
+        return $fp;
+    }
+
+    private function readTimetableCache(string $stopId, int $ttl): ?string
+    {
+        $path = $this->timetableCachePath($stopId, '.html');
+        if ($path === null || !is_file($path)) {
+            return null;
+        }
+
+        clearstatcache(true, $path);
+        $mtime = @filemtime($path);
+        if (!is_int($mtime) || (time() - $mtime) > $ttl) {
+            return null;
+        }
+
+        $html = @file_get_contents($path);
+        if (!is_string($html) || trim($html) === '') {
+            return null;
+        }
+
+        return $html;
+    }
+
+    private function writeTimetableCache(string $stopId, string $html): void
+    {
+        if (trim($html) === '') {
+            return;
+        }
+
+        $path = $this->timetableCachePath($stopId, '.html');
+        if ($path === null) {
+            return;
+        }
+
+        $dir = dirname($path);
+        $tmp = @tempnam($dir, $stopId . '-');
+        if (!is_string($tmp) || $tmp === '') {
+            return;
+        }
+
+        @chmod($tmp, 0o600);
+        $written = @file_put_contents($tmp, $html);
+        if (!is_int($written) || $written <= 0) {
+            @unlink($tmp);
+            return;
+        }
+        if (!@rename($tmp, $path)) {
+            @unlink($tmp);
+        }
+    }
+
+    private function timetableCachePath(string $stopId, string $suffix): ?string
+    {
+        $dir = sys_get_temp_dir() . '/podroznik-timetable-cache';
+        if (!is_dir($dir) && !@mkdir($dir, 0o700, true) && !is_dir($dir)) {
+            return null;
+        }
+        if (!is_writable($dir)) {
+            return null;
+        }
+        return $dir . '/' . $stopId . $suffix;
     }
 
     private function detectBlockPage(string $html): void

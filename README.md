@@ -18,6 +18,7 @@ Otwórz `http://127.0.0.1:8080/`.
 - Ta aplikacja nie implementuje zakupu biletów — skupia się na dostępnej wyszukiwarce i prezentacji wyników/szczegółów.
 - Jeśli e‑podroznik.pl ma agresywną ochronę anty‑bot/DDoS, możesz ograniczyć tempo zapytań z serwera przez `EPODROZNIK_MIN_INTERVAL_MS` (np. `250`).
 - Dla ciężkich rozkładów przystankowych możesz ustawić `EPODROZNIK_TIMETABLE_TIMEOUT` (sekundy, minimum `35`, maksimum `180`), jeśli domyślny limit okaże się za niski.
+- Rozkłady przystankowe są cache’owane na dysku po `stopId`; TTL ustawisz przez `EPODROZNIK_TIMETABLE_CACHE_TTL` (sekundy, minimum `60`, maksimum `86400`, domyślnie `900`).
 
 ## Monitoring (opcjonalnie)
 
