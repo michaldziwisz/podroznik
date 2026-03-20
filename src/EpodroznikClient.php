@@ -7,6 +7,8 @@ final class EpodroznikClient
 {
     private const BASE_URL = 'https://www.e-podroznik.pl';
     private const BASE_HOST = 'www.e-podroznik.pl';
+    private const DEFAULT_TIMEOUT = 35;
+    private const TIMETABLE_TIMEOUT = 60;
 
     private ?\CurlHandle $curl = null;
 
@@ -259,20 +261,20 @@ final class EpodroznikClient
         }
 
         $url = '/public/generalTimetable.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&stopId=' . rawurlencode($stopId);
-        $html = $this->get($url);
+        $html = $this->get($url, timeout: self::TIMETABLE_TIMEOUT);
         if (trim($html) === '') {
             $this->resetRemoteSession();
             $this->ensureInitialized();
             $url = '/public/generalTimetable.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&stopId=' . rawurlencode($stopId);
-            $html = $this->get($url);
+            $html = $this->get($url, timeout: self::TIMETABLE_TIMEOUT);
         }
         return $html;
     }
 
-    public function get(string $pathOrUrl, bool $allowRelative = false): string
+    public function get(string $pathOrUrl, bool $allowRelative = false, ?int $timeout = null): string
     {
         $url = $this->normalizeUrl($pathOrUrl);
-        return $this->request('GET', $url, null, followLocation: true);
+        return $this->request('GET', $url, null, followLocation: true, timeout: $timeout);
     }
 
     private function post(string $path, array $data, array $extraHeaders = [], bool $followLocation = false): string
@@ -328,6 +330,7 @@ final class EpodroznikClient
         ?array $data,
         array $extraHeaders = [],
         bool $followLocation = true,
+        ?int $timeout = null,
     ): string {
         $ch = $this->curl;
         if (!$ch instanceof \CurlHandle) {
@@ -350,7 +353,7 @@ final class EpodroznikClient
             CURLOPT_FOLLOWLOCATION => $followLocation,
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_CONNECTTIMEOUT => 12,
-            CURLOPT_TIMEOUT => 35,
+            CURLOPT_TIMEOUT => $timeout ?? self::DEFAULT_TIMEOUT,
             CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_SSL_VERIFYPEER => true,

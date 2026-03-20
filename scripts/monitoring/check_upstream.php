@@ -128,8 +128,8 @@ final class UpstreamCheck
 
     private function checkTimetable(EpodroznikClient $client): void
     {
-        // A stable, busy stop. If this ever changes, update the stopId.
-        $stopId = '103163'; // WARSZAWA CENTRALNA
+        // A stable stop that responds noticeably faster than the busiest Warsaw hubs.
+        $stopId = '103250'; // Sieradz
 
         $html = $client->getGeneralTimetableStop($stopId);
         $parser = new TimetableParser();
