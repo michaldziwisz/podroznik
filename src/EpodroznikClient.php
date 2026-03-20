@@ -8,7 +8,7 @@ final class EpodroznikClient
     private const BASE_URL = 'https://www.e-podroznik.pl';
     private const BASE_HOST = 'www.e-podroznik.pl';
     private const DEFAULT_TIMEOUT = 35;
-    private const TIMETABLE_TIMEOUT = 60;
+    private const TIMETABLE_TIMEOUT = 120;
 
     private ?\CurlHandle $curl = null;
 
@@ -260,13 +260,14 @@ final class EpodroznikClient
             throw new \RuntimeException('Brak stopId.');
         }
 
+        $timeout = $this->timetableTimeout();
         $url = '/public/generalTimetable.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&stopId=' . rawurlencode($stopId);
-        $html = $this->get($url, timeout: self::TIMETABLE_TIMEOUT);
+        $html = $this->get($url, timeout: $timeout);
         if (trim($html) === '') {
             $this->resetRemoteSession();
             $this->ensureInitialized();
             $url = '/public/generalTimetable.do?tabToken=' . rawurlencode((string)$this->tabToken) . '&stopId=' . rawurlencode($stopId);
-            $html = $this->get($url, timeout: self::TIMETABLE_TIMEOUT);
+            $html = $this->get($url, timeout: $timeout);
         }
         return $html;
     }
@@ -449,6 +450,15 @@ final class EpodroznikClient
             return (int)$v;
         }
         return 0;
+    }
+
+    private function timetableTimeout(): int
+    {
+        $timeout = $this->envInt('EPODROZNIK_TIMETABLE_TIMEOUT');
+        if ($timeout < self::DEFAULT_TIMEOUT) {
+            return self::TIMETABLE_TIMEOUT;
+        }
+        return min($timeout, 180);
     }
 
     private function detectBlockPage(string $html): void
