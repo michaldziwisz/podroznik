@@ -113,10 +113,12 @@ final class App
         }
 
         header('Content-Type: text/html; charset=utf-8');
+        header('Vary: User-Agent, Sec-CH-UA-Mobile', false);
         echo $this->view->render('layout', [
             'title' => $title,
             'contentHtml' => $contentHtml,
             'ui' => $ui,
+            'showUiPrefs' => !$this->isMobileRequest(),
             'csrf' => Csrf::token(),
             'flash' => $flash,
             ...$extra,
@@ -1394,6 +1396,22 @@ final class App
     private function sendSecurityHeaders(): void
     {
         header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+        header('Accept-CH: Sec-CH-UA-Mobile', false);
+    }
+
+    private function isMobileRequest(): bool
+    {
+        $chMobile = trim((string)($_SERVER['HTTP_SEC_CH_UA_MOBILE'] ?? ''));
+        if ($chMobile === '?1' || $chMobile === '1') {
+            return true;
+        }
+
+        $ua = mb_strtolower((string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+        if ($ua === '') {
+            return false;
+        }
+
+        return preg_match('/iphone|ipod|ipad|android|mobile|windows phone|iemobile|opera mini|blackberry/u', $ua) === 1;
     }
 
     private function turnstileViewModel(): array

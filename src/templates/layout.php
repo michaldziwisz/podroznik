@@ -2,6 +2,7 @@
 /** @var string $title */
 /** @var string $contentHtml */
 /** @var \TyfloPodroznik\UiPrefs $ui */
+/** @var bool $showUiPrefs */
 /** @var string $csrf */
 /** @var array|null $flash */
 
@@ -48,13 +49,15 @@ $jsSrc = '/assets/app.js' . ($jsVer !== '' ? ('?v=' . rawurlencode($jsVer)) : ''
             <a class="btn small" href="/timetable">Rozkład z przystanku</a>
             <a class="btn small" href="/contact">Zgłoś problem</a>
           </nav>
-          <form class="ui-controls ui-prefs" method="post" action="/ui">
-            <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
-            <input type="hidden" name="back" value="<?= \TyfloPodroznik\Html::e(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/') ?>">
-            <button class="btn small" type="submit" name="action" value="toggle_contrast">Kontrast</button>
-            <button class="btn small" type="submit" name="action" value="font_dec">Czcionka −</button>
-            <button class="btn small" type="submit" name="action" value="font_inc">Czcionka +</button>
-          </form>
+          <?php if ($showUiPrefs): ?>
+            <form class="ui-controls ui-prefs" method="post" action="/ui">
+              <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
+              <input type="hidden" name="back" value="<?= \TyfloPodroznik\Html::e(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/') ?>">
+              <button class="btn small" type="submit" name="action" value="toggle_contrast">Kontrast</button>
+              <button class="btn small" type="submit" name="action" value="font_dec">Czcionka −</button>
+              <button class="btn small" type="submit" name="action" value="font_inc">Czcionka +</button>
+            </form>
+          <?php endif; ?>
         </div>
       </div>
     </header>
