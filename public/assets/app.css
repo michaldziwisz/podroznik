@@ -121,7 +121,10 @@ header.site{
   align-items: center;
 }
 .site-nav{flex: 1 1 auto;}
-.ui-prefs{justify-content: flex-end;}
+.ui-prefs{
+  display: none;
+  justify-content: flex-end;
+}
 .btn{
   appearance: none;
   border: 1px solid var(--border);
@@ -240,8 +243,11 @@ details[open] > summary{margin-bottom: var(--gap);}
   .grid-2{grid-template-columns: 1fr 1fr;}
 }
 
-@media (max-width: 920px), (hover: none) and (pointer: coarse){
-  .ui-prefs{display: none;}
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine){
+  .ui-prefs{display: flex;}
+}
+
+@media (max-width: 1024px), (hover: none), (pointer: coarse){
   .site .bar{
     align-items: flex-start;
   }
