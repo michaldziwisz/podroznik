@@ -240,7 +240,7 @@ details[open] > summary{margin-bottom: var(--gap);}
   .grid-2{grid-template-columns: 1fr 1fr;}
 }
 
-@media (max-width: 720px){
+@media (max-width: 920px), (hover: none) and (pointer: coarse){
   .ui-prefs{display: none;}
   .site .bar{
     align-items: flex-start;
