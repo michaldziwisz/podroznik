@@ -5,10 +5,21 @@
 /** @var string $csrf */
 /** @var array|null $flash */
 
+$assetVersion = static function (string $path): string {
+    if (!is_file($path)) {
+        return '';
+    }
+    $hash = @sha1_file($path);
+    if (!is_string($hash) || $hash === '') {
+        $mtime = @filemtime($path);
+        return is_int($mtime) ? (string)$mtime : '';
+    }
+    return substr($hash, 0, 12);
+};
 $cssPath = __DIR__ . '/../../public/assets/app.css';
 $jsPath = __DIR__ . '/../../public/assets/app.js';
-$cssVer = is_file($cssPath) ? (string)filemtime($cssPath) : '';
-$jsVer = is_file($jsPath) ? (string)filemtime($jsPath) : '';
+$cssVer = $assetVersion($cssPath);
+$jsVer = $assetVersion($jsPath);
 $cssHref = '/assets/app.css' . ($cssVer !== '' ? ('?v=' . rawurlencode($cssVer)) : '');
 $jsSrc = '/assets/app.js' . ($jsVer !== '' ? ('?v=' . rawurlencode($jsVer)) : '');
 ?>
