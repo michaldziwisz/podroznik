@@ -138,6 +138,51 @@
     }
   }
 
+  function initTextInputNormalizers() {
+    const inputs = document.querySelectorAll('input[data-ep-normalize="date"], input[data-ep-normalize="time"]');
+    if (inputs.length === 0) return;
+
+    function normalizeInput(input) {
+      if (!(input instanceof HTMLInputElement)) return;
+      const kind = input.dataset.epNormalize || '';
+      if (kind !== 'date' && kind !== 'time') return;
+
+      const raw = normalizeWhitespace(input.value);
+      if (!raw) {
+        input.value = '';
+        return;
+      }
+
+      const normalized = kind === 'date' ? normalizeDateValue(raw) : normalizeTimeValue(raw);
+      input.value = normalized;
+    }
+
+    for (const input of inputs) {
+      if (!(input instanceof HTMLInputElement)) continue;
+      if (input.dataset.epNormalizeInit === '1') continue;
+      input.dataset.epNormalizeInit = '1';
+      input.addEventListener('blur', () => normalizeInput(input));
+      input.addEventListener('change', () => normalizeInput(input));
+    }
+
+    const forms = new Set();
+    for (const input of inputs) {
+      if (input instanceof HTMLInputElement && input.form instanceof HTMLFormElement) {
+        forms.add(input.form);
+      }
+    }
+    for (const form of forms) {
+      if (form.dataset.epNormalizeSubmit === '1') continue;
+      form.dataset.epNormalizeSubmit = '1';
+      form.addEventListener('submit', () => {
+        const formInputs = form.querySelectorAll('input[data-ep-normalize="date"], input[data-ep-normalize="time"]');
+        for (const input of formInputs) {
+          normalizeInput(input);
+        }
+      });
+    }
+  }
+
   function initAutocomplete(input) {
     const kind = (input.dataset.epKind || 'SOURCE').toUpperCase();
     const type = (input.dataset.epType || 'ALL').toUpperCase();
@@ -509,6 +554,7 @@
   }
 
   function init() {
+    initTextInputNormalizers();
     iosDateTimePickersOnActivate();
     const inputs = document.querySelectorAll('input[data-ep-suggest="1"]');
     for (const input of inputs) {

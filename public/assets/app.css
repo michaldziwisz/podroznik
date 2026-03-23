@@ -120,6 +120,8 @@ header.site{
   gap: 8px;
   align-items: center;
 }
+.site-nav{flex: 1 1 auto;}
+.ui-prefs{justify-content: flex-end;}
 .btn{
   appearance: none;
   border: 1px solid var(--border);
@@ -236,6 +238,16 @@ details[open] > summary{margin-bottom: var(--gap);}
 .grid-2{display: grid; gap: var(--gap);}
 @media (min-width: 820px){
   .grid-2{grid-template-columns: 1fr 1fr;}
+}
+
+@media (max-width: 720px){
+  .ui-prefs{display: none;}
+  .site .bar{
+    align-items: flex-start;
+  }
+  .search-form .btn.primary{
+    width: 100%;
+  }
 }
 
 .results{

@@ -5,25 +5,25 @@ $turnstile = (isset($turnstile) && is_array($turnstile)) ? $turnstile : [];
 $turnstileRequired = (bool)($turnstile['required'] ?? false);
 $turnstileSiteKey = (string)($turnstile['siteKey'] ?? '');
 $timeDefault = (string)($defaults['time'] ?? '');
-$omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 ?>
 <div class="stack">
   <h1>Wyszukiwarka połączeń</h1>
 
   <div class="card">
-    <form method="post" action="/search" class="stack" novalidate>
+    <form method="post" action="/search" class="stack search-form" novalidate>
       <input type="hidden" name="csrf" value="<?= \TyfloPodroznik\Html::e($csrf) ?>">
 
       <fieldset class="grid-2">
 	        <legend>Trasa</legend>
 	        <div class="field">
-	          <label for="from">Z (miejsce startu)</label>
+	          <label for="from">Z</label>
 	          <input
 	            id="from"
 	            name="from"
 	            type="text"
 	            inputmode="search"
 	            autocomplete="off"
+	            placeholder="Miasto, przystanek, ulica lub adres"
 	            required
 	            value="<?= \TyfloPodroznik\Html::e((string)($defaults['from'] ?? '')) ?>"
 	            role="combobox"
@@ -37,17 +37,17 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            data-ep-list="from_suggestions"
 	          >
 	          <input type="hidden" id="fromV" name="fromV" value="">
-	          <div id="from_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź. Pozycje z dopiskiem „door to door” oznaczają przewozy od adresu do adresu (bez konkretnego przystanku).</div>
 	          <ul id="from_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>
 	        <div class="field">
-	          <label for="to">Do (miejsce docelowe)</label>
+	          <label for="to">Do</label>
 	          <input
 	            id="to"
 	            name="to"
 	            type="text"
 	            inputmode="search"
 	            autocomplete="off"
+	            placeholder="Miasto, przystanek, ulica lub adres"
 	            required
 	            value="<?= \TyfloPodroznik\Html::e((string)($defaults['to'] ?? '')) ?>"
 	            role="combobox"
@@ -61,7 +61,6 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	            data-ep-list="to_suggestions"
 	          >
 	          <input type="hidden" id="toV" name="toV" value="">
-	          <div id="to_help" class="help">Wpisz miasto, przystanek, ulicę lub adres. Podpowiedzi pojawią się po wpisaniu min. 2 znaków. Użyj strzałek góra/dół i Enter albo stuknij podpowiedź. Pozycje z dopiskiem „door to door” oznaczają przewozy od adresu do adresu (bez konkretnego przystanku).</div>
 	          <ul id="to_suggestions" class="autocomplete-list" role="listbox" hidden></ul>
 	        </div>
 	      </fieldset>
@@ -70,25 +69,31 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         <legend>Data i godzina</legend>
 	        <div class="field">
 	          <label for="date">Data wyjazdu</label>
-	          <input id="date" name="date" type="date" placeholder="YYYY-MM-DD" required value="<?= \TyfloPodroznik\Html::e((string)($defaults['date'] ?? date('Y-m-d'))) ?>">
-	          <div class="help">Format: YYYY-MM-DD lub DD.MM.YYYY (np. 2026-01-20).</div>
+	          <input
+	            id="date"
+	            name="date"
+	            type="text"
+	            inputmode="numeric"
+	            autocomplete="off"
+	            placeholder="YYYY-MM-DD"
+	            data-ep-normalize="date"
+	            required
+	            value="<?= \TyfloPodroznik\Html::e((string)($defaults['date'] ?? date('Y-m-d'))) ?>"
+	          >
 	        </div>
 	        <div class="field">
 	          <label for="time">Godzina (opcjonalnie)</label>
+	          <input type="hidden" name="omit_time" value="1">
 	          <input
 	            id="time"
 	            name="time"
-	            type="time"
-	            step="60"
+	            type="text"
+	            inputmode="numeric"
 	            autocomplete="off"
 	            placeholder="HH:MM"
+	            data-ep-normalize="time"
 	            value="<?= \TyfloPodroznik\Html::e($timeDefault) ?>"
 	          >
-	          <label class="help">
-	            <input type="checkbox" name="omit_time" value="1" <?= $omitTimeChecked ?>>
-	            Pomiń godzinę (pokaż połączenia z całego dnia)
-          </label>
-          <div class="help">Jeśli podasz godzinę, pokażemy połączenia od tej godziny.</div>
         </div>
       </fieldset>
 
@@ -106,7 +111,6 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
             <label><input type="radio" name="trip_type" value="one-way" checked> W jedną stronę</label>
             <label><input type="radio" name="trip_type" value="two-way"> W obie strony</label>
           </div>
-          <div class="help">Pola powrotu pojawią się po wybraniu „W obie strony”.</div>
         </fieldset>
       </div>
 
@@ -114,24 +118,30 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
 	        <legend>Powrót (opcjonalnie)</legend>
 	        <div class="field">
 	          <label for="return_date">Data powrotu</label>
-	          <input id="return_date" name="return_date" type="date" placeholder="YYYY-MM-DD" value="">
+	          <input
+	            id="return_date"
+	            name="return_date"
+	            type="text"
+	            inputmode="numeric"
+	            autocomplete="off"
+	            placeholder="YYYY-MM-DD"
+	            data-ep-normalize="date"
+	            value=""
+	          >
 	        </div>
 	        <div class="field">
 	          <label for="return_time">Godzina powrotu (opcjonalnie)</label>
+	          <input type="hidden" name="omit_return_time" value="1">
 	          <input
 	            id="return_time"
 	            name="return_time"
-	            type="time"
-	            step="60"
+	            type="text"
+	            inputmode="numeric"
 	            autocomplete="off"
 	            placeholder="HH:MM"
+	            data-ep-normalize="time"
 	            value=""
 	          >
-          <label class="help">
-            <input type="checkbox" name="omit_return_time" value="1" checked>
-            Pomiń godzinę powrotu
-          </label>
-          <div class="help">Godzina jest opcjonalna.</div>
         </div>
         <div class="field">
           <span class="help">Wg:</span>
@@ -196,6 +206,10 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         </div>
       </details>
 
+      <div>
+        <button class="btn primary" type="submit">Szukaj połączeń</button>
+      </div>
+
       <?php if ($turnstileRequired && $turnstileSiteKey !== ''): ?>
         <div class="field">
           <div class="help">Weryfikacja antyspam (Cloudflare Turnstile).</div>
@@ -204,10 +218,6 @@ $omitTimeChecked = $timeDefault === '' ? 'checked' : '';
         </div>
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
       <?php endif; ?>
-
-      <div>
-        <button class="btn primary" type="submit">Szukaj połączeń</button>
-      </div>
     </form>
   </div>
 </div>
