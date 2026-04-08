@@ -104,15 +104,18 @@ final class UpstreamCheck
 
     private function checkSearch(EpodroznikClient $client): void
     {
-        $fromV = $this->resolvePlaceDataString($client, 'Warszawa', 'SOURCE', 'CITIES');
-        $toV = $this->resolvePlaceDataString($client, 'Łódź', 'DESTINATION', 'CITIES');
+        // Keep the monitoring route lightweight and stable.
+        $from = 'Sieradz';
+        $to = 'Zduńska Wola';
+        $fromV = $this->resolvePlaceDataString($client, $from, 'SOURCE', 'CITIES');
+        $toV = $this->resolvePlaceDataString($client, $to, 'DESTINATION', 'CITIES');
 
         $date = date('Y-m-d');
         $html = $client->search([
             'fromV' => $fromV,
             'toV' => $toV,
-            'fromQuery' => 'Warszawa',
-            'toQuery' => 'Łódź',
+            'fromQuery' => $from,
+            'toQuery' => $to,
             'date' => $date,
             'omitTime' => true,
         ]);
@@ -121,9 +124,9 @@ final class UpstreamCheck
         $results = $parser->parseResultsPageHtml($html);
         $count = (int)($results['count'] ?? 0);
         if ($count < 1) {
-            throw new \RuntimeException('parsed 0 results for Warszawa → Łódź on ' . $date);
+            throw new \RuntimeException('parsed 0 results for ' . $from . ' → ' . $to . ' on ' . $date);
         }
-        $this->info[] = 'search: ok (count=' . $count . ', date=' . $date . ')';
+        $this->info[] = 'search: ok (count=' . $count . ', route="' . $from . ' → ' . $to . '", date=' . $date . ')';
     }
 
     private function checkTimetable(EpodroznikClient $client): void
