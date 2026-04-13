@@ -105,8 +105,8 @@ final class UpstreamCheck
     private function checkSearch(EpodroznikClient $client): void
     {
         // Keep the monitoring route lightweight and stable.
-        $from = 'Sieradz';
-        $to = 'Zduńska Wola';
+        $from = 'Warszawa';
+        $to = 'Kutno';
         $fromV = $this->resolvePlaceDataString($client, $from, 'SOURCE', 'CITIES');
         $toV = $this->resolvePlaceDataString($client, $to, 'DESTINATION', 'CITIES');
 
