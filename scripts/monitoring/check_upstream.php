@@ -44,7 +44,7 @@ final class UpstreamCheck
 
         if ($client instanceof EpodroznikClient) {
             try {
-                $this->checkSuggest($client);
+                $client = $this->checkSuggest($client);
             } catch (\Throwable $e) {
                 $this->addError('suggest', $e);
             }
@@ -92,14 +92,31 @@ final class UpstreamCheck
         return 0;
     }
 
-    private function checkSuggest(EpodroznikClient $client): void
+    private function checkSuggest(EpodroznikClient $client): EpodroznikClient
     {
-        $resp = $client->suggest('Warszawa', 'SOURCE');
-        $suggestions = $resp['suggestions'] ?? null;
-        if (!is_array($suggestions) || $suggestions === []) {
-            throw new \RuntimeException('empty suggestions for "Warszawa"');
+        $query = 'Warszawa';
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $resp = $client->suggest($query, 'SOURCE');
+                $suggestions = $resp['suggestions'] ?? null;
+                if (!is_array($suggestions) || $suggestions === []) {
+                    throw new \RuntimeException('empty suggestions for "' . $query . '"');
+                }
+                $this->info[] = 'suggest: ok (count=' . count($suggestions) . ')';
+                return $client;
+            } catch (\Throwable $e) {
+                $lastError = $e;
+                if ($attempt >= 2) {
+                    break;
+                }
+                $this->resetRemoteSessionState();
+                $client = EpodroznikClient::fromSession();
+            }
         }
-        $this->info[] = 'suggest: ok (count=' . count($suggestions) . ')';
+
+        throw ($lastError ?? new \RuntimeException('suggest failed for "' . $query . '"'));
     }
 
     private function checkSearch(EpodroznikClient $client): void
@@ -234,6 +251,8 @@ final class UpstreamCheck
             || str_contains($m, 'blacklist')
             || str_contains($m, 'blacklisted')
             || str_contains($m, 'denial of service')
+            || str_contains($m, 'strona błędu')
+            || str_contains($m, 'nieoczekiwany błąd')
         ) {
             return 'upstream';
         }
@@ -245,14 +264,21 @@ final class UpstreamCheck
             || str_contains($m, 'nie udało się odczytać')
             || str_contains($m, 'nie udało się pobrać tabtoken')
             || str_contains($m, 'błąd podpowiedzi')
-            || str_contains($m, 'strona błędu')
-            || str_contains($m, 'nieoczekiwany błąd')
             || str_contains($m, 'domdocument')
         ) {
             return 'parser';
         }
 
         return 'unknown';
+    }
+
+    private function resetRemoteSessionState(): void
+    {
+        $cookieJar = $_SESSION['ep_cookiejar'] ?? null;
+        if (is_string($cookieJar) && $cookieJar !== '' && is_file($cookieJar)) {
+            @unlink($cookieJar);
+        }
+        unset($_SESSION['ep_cookiejar'], $_SESSION['ep_tabToken']);
     }
 }
 
