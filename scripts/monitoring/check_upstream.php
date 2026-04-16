@@ -94,17 +94,19 @@ final class UpstreamCheck
 
     private function checkSuggest(EpodroznikClient $client): EpodroznikClient
     {
-        $query = 'Warszawa';
+        // Keep the suggest smoke test lightweight and deterministic.
+        $query = 'Kutno';
+        $type = 'CITIES';
         $lastError = null;
 
         for ($attempt = 1; $attempt <= 2; $attempt++) {
             try {
-                $resp = $client->suggest($query, 'SOURCE');
+                $resp = $client->suggest($query, 'SOURCE', $type);
                 $suggestions = $resp['suggestions'] ?? null;
                 if (!is_array($suggestions) || $suggestions === []) {
                     throw new \RuntimeException('empty suggestions for "' . $query . '"');
                 }
-                $this->info[] = 'suggest: ok (count=' . count($suggestions) . ')';
+                $this->info[] = 'suggest: ok (count=' . count($suggestions) . ', query="' . $query . '", type=' . $type . ')';
                 return $client;
             } catch (\Throwable $e) {
                 $lastError = $e;
