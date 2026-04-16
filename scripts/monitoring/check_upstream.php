@@ -52,7 +52,7 @@ final class UpstreamCheck
 
         if ($this->errors === [] && $client instanceof EpodroznikClient) {
             try {
-                $this->checkSearch($client);
+                $client = $this->checkSearch($client);
             } catch (\Throwable $e) {
                 $this->addError('search', $e);
             }
@@ -119,31 +119,47 @@ final class UpstreamCheck
         throw ($lastError ?? new \RuntimeException('suggest failed for "' . $query . '"'));
     }
 
-    private function checkSearch(EpodroznikClient $client): void
+    private function checkSearch(EpodroznikClient $client): EpodroznikClient
     {
         // Keep the monitoring route lightweight and stable.
         $from = 'Warszawa';
         $to = 'Kutno';
-        $fromV = $this->resolvePlaceDataString($client, $from, 'SOURCE', 'CITIES');
-        $toV = $this->resolvePlaceDataString($client, $to, 'DESTINATION', 'CITIES');
-
         $date = date('Y-m-d');
-        $html = $client->search([
-            'fromV' => $fromV,
-            'toV' => $toV,
-            'fromQuery' => $from,
-            'toQuery' => $to,
-            'date' => $date,
-            'omitTime' => true,
-        ]);
+        $lastError = null;
 
-        $parser = new ResultsParser();
-        $results = $parser->parseResultsPageHtml($html);
-        $count = (int)($results['count'] ?? 0);
-        if ($count < 1) {
-            throw new \RuntimeException('parsed 0 results for ' . $from . ' → ' . $to . ' on ' . $date);
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $fromV = $this->resolvePlaceDataString($client, $from, 'SOURCE', 'CITIES');
+                $toV = $this->resolvePlaceDataString($client, $to, 'DESTINATION', 'CITIES');
+
+                $html = $client->search([
+                    'fromV' => $fromV,
+                    'toV' => $toV,
+                    'fromQuery' => $from,
+                    'toQuery' => $to,
+                    'date' => $date,
+                    'omitTime' => true,
+                ]);
+
+                $parser = new ResultsParser();
+                $results = $parser->parseResultsPageHtml($html);
+                $count = (int)($results['count'] ?? 0);
+                if ($count < 1) {
+                    throw new \RuntimeException('parsed 0 results for ' . $from . ' → ' . $to . ' on ' . $date);
+                }
+                $this->info[] = 'search: ok (count=' . $count . ', route="' . $from . ' → ' . $to . '", date=' . $date . ')';
+                return $client;
+            } catch (\Throwable $e) {
+                $lastError = $e;
+                if ($attempt >= 2) {
+                    break;
+                }
+                $this->resetRemoteSessionState();
+                $client = EpodroznikClient::fromSession();
+            }
         }
-        $this->info[] = 'search: ok (count=' . $count . ', route="' . $from . ' → ' . $to . '", date=' . $date . ')';
+
+        throw ($lastError ?? new \RuntimeException('search failed for ' . $from . ' → ' . $to));
     }
 
     private function checkTimetable(EpodroznikClient $client): void
