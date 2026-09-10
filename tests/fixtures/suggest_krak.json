@@ -1,11 +1,11 @@
 {
     "status": "0",
     "countriesCodes": [
-        "cz",
-        "de",
         "at",
+        "PL",
         "ua",
-        "PL"
+        "de",
+        "cz"
     ],
     "suggestions": [
         {

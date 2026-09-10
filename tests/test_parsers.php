@@ -171,9 +171,9 @@ function uruchom_testy_parserow(Biegacz $t): void
     }
 
     // Tytuł strony: e-podroznik.pl wstawia w pierwszy nagłówek treści zupełnie
-    // niezwiązane z wyszukiwaniem (w tej próbce dosłownie „Nieprawidłowy adres
-    // email” — komunikat z formularza newslettera). Dlatego pole 'title' NIE
-    // nadaje się na nagłówek naszej strony i widok go nie używa. Ten test
+    // niezwiązane z wyszukiwaniem (w jednej z próbek dosłownie „Nieprawidłowy
+    // adres email” — komunikat z formularza newslettera). Dlatego pole 'title'
+    // NIE nadaje się na nagłówek naszej strony i widok go nie używa. Ten test
     // pilnuje, żeby nikt go tam przez pomyłkę nie wstawił, i dokumentuje powód.
     $t->prawda('pole title istnieje, ale jest tylko informacyjne', is_string($wyniki['title']));
     $szablonWynikow = (string)file_get_contents(__DIR__ . '/../src/templates/results.php');
@@ -182,6 +182,49 @@ function uruchom_testy_parserow(Biegacz $t): void
         "results['title']",
         $szablonWynikow
     );
+
+    $t->grupa('Higiena próbek (publiczne repozytorium)');
+
+    // Próbki leżą w publicznym repozytorium, a odpowiedzi serwisu niosą cudze
+    // klucze usług (Google Maps w adresie skryptu) i identyfikatory NASZEJ
+    // sesji. Raz już przez to poszedł alert skanera sekretów GitHuba, więc
+    // pilnuje tego test, a nie tylko czujność przy zbieraniu próbek.
+    //
+    // Skrypty wycinamy w całości: parsery czytają wyłącznie strukturę dokumentu
+    // (XPath po klasach), nigdy kodu strony — sprawdzone pomiarem na tej samej
+    // odpowiedzi upstreamu, surowej i oczyszczonej: identyczne identyfikatory
+    // połączeń i identyczny rozkład.
+    foreach (glob($katalogProbek . '/*') ?: [] as $plikProbki) {
+        $nazwaProbki = basename($plikProbki);
+        $trescProbki = (string)file_get_contents($plikProbki);
+
+        $t->falsz(
+            "{$nazwaProbki}: brak klucza Google",
+            preg_match('/AIza[A-Za-z0-9_-]{35}/', $trescProbki) === 1
+        );
+        $t->falsz(
+            "{$nazwaProbki}: brak klucza reCAPTCHA",
+            preg_match('/\b6L[A-Za-z0-9_-]{38}\b/', $trescProbki) === 1
+        );
+        $t->falsz(
+            "{$nazwaProbki}: brak znaczników script",
+            preg_match('/<script\b/i', $trescProbki) === 1
+        );
+        // Token sesji tego serwisu ma kształt 32 znaków szesnastkowych.
+        // Sprawdzamy sam KSZTAŁT, nie tylko wystąpienia przy nazwie „tabToken”:
+        // dokładnie tak przeoczyłem je za pierwszym razem, bo siedziały
+        // w setTabToken(...) i w polach ukrytych formularzy.
+        $t->falsz(
+            "{$nazwaProbki}: brak ciągów wyglądających na token sesji",
+            preg_match('/\b[0-9a-f]{32}\b/', $trescProbki) === 1
+        );
+        // PARA NEGATYWNA do powyższych: zastępniki MUSZĄ tam być, inaczej
+        // „czysto” mogłoby znaczyć, że anonimizacja wycięła adresy razem
+        // z odnośnikami, które parser ma czytać.
+        if (str_ends_with($nazwaProbki, '.html')) {
+            $t->zawiera("{$nazwaProbki}: adresy z zastępnikiem tokena zachowane", 'ZASTEPCZYTABTOKEN', $trescProbki);
+        }
+    }
 }
 
 $test = new Biegacz();
