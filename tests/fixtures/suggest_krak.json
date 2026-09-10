@@ -1,0 +1,342 @@
+{
+    "status": "0",
+    "countriesCodes": [
+        "cz",
+        "de",
+        "at",
+        "ua",
+        "PL"
+    ],
+    "suggestions": [
+        {
+            "n": "Kraków",
+            "t": "VERY_BIG_CITY",
+            "c": "M. Kraków",
+            "a": [
+                "woj. Małopolskie, pow. m. Kraków, gm. M. Kraków"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "55156",
+            "cid": "55156",
+            "la": "50.061667",
+            "lo": "19.939167",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "c|55156"
+        },
+        {
+            "n": "Balice",
+            "t": "CITY",
+            "c": "Zabierzów",
+            "a": [
+                "woj. Małopolskie, pow. krakowski, gm. Zabierzów"
+            ],
+            "cai": "miasto Balice, pow. krakowski, gm. Zabierzów",
+            "id": "89508",
+            "cid": "89508",
+            "la": "50.088333",
+            "lo": "19.79",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "c|89508"
+        },
+        {
+            "n": "Krakuszowice",
+            "t": "CITY",
+            "c": "Gdów",
+            "a": [
+                "woj. Małopolskie, pow. wielicki, gm. Gdów"
+            ],
+            "cai": "miasto Krakuszowice, pow. wielicki, gm. Gdów",
+            "id": "11703",
+            "cid": "11703",
+            "la": "49.948538",
+            "lo": "20.242828",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "c|11703"
+        },
+        {
+            "n": "Krakowiany",
+            "t": "CITY",
+            "c": "Nadarzyn",
+            "a": [
+                "woj. Mazowieckie, pow. pruszkowski, gm. Nadarzyn"
+            ],
+            "cai": "miasto Krakowiany, pow. pruszkowski, gm. Nadarzyn",
+            "id": "46550",
+            "cid": "46550",
+            "la": "52.021111",
+            "lo": "20.779444",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "c|46550"
+        },
+        {
+            "n": "Krakowiany",
+            "t": "CITY",
+            "c": "Długołęka",
+            "a": [
+                "woj. Dolnośląskie, pow. wrocławski, gm. Długołęka"
+            ],
+            "cai": "miasto Krakowiany, pow. wrocławski, gm. Długołęka",
+            "id": "92161",
+            "cid": "92161",
+            "la": "51.263889",
+            "lo": "17.19",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "c|92161"
+        },
+        {
+            "n": "Balice",
+            "t": "CITY",
+            "c": "Janikowo obszar wiejski",
+            "a": [
+                "woj. Kujawsko-pomorskie, pow. inowrocławski, gm. Janikowo obszar wiejski"
+            ],
+            "cai": "miasto Balice, pow. inowrocławski, gm. Janikowo obszar wiejski",
+            "id": "83360",
+            "cid": "83360",
+            "la": "52.716667",
+            "lo": "18.151389",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "c|83360"
+        },
+        {
+            "n": "Kraków, door-to-door",
+            "t": "DOOR2DOOR",
+            "c": "Kraków",
+            "a": [
+                "miasto Kraków",
+                "przewoźnicy: poEuropie.pl"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "720887",
+            "cid": "55156",
+            "la": "50.061667",
+            "lo": "19.939167",
+            "sm": "true",
+            "iel": "false",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "s|720887"
+        },
+        {
+            "n": "Kraków, door-to-door",
+            "t": "DOOR2DOOR",
+            "c": "Kraków",
+            "a": [
+                "miasto Kraków",
+                "przewoźnicy: GTV BUS"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "830553",
+            "cid": "55156",
+            "la": "50.061667",
+            "lo": "19.939167",
+            "sm": "true",
+            "iel": "false",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "s|830553"
+        },
+        {
+            "n": "Kraków, door-to-door",
+            "t": "DOOR2DOOR",
+            "c": "Kraków",
+            "a": [
+                "miasto Kraków",
+                "przewoźnicy: Stan-Trans"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "839665",
+            "cid": "55156",
+            "la": "50.061667",
+            "lo": "19.939167",
+            "sm": "true",
+            "iel": "false",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "s|839665"
+        },
+        {
+            "n": "Kraków, door-to-door",
+            "t": "DOOR2DOOR",
+            "c": "Kraków",
+            "a": [
+                "miasto Kraków",
+                "przewoźnicy: TANI BUS"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "827290",
+            "cid": "55156",
+            "la": "50.061667",
+            "lo": "19.939167",
+            "sm": "true",
+            "iel": "false",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "s|827290"
+        },
+        {
+            "n": "Kraków, door-to-door",
+            "t": "DOOR2DOOR",
+            "c": "Kraków",
+            "a": [
+                "miasto Kraków",
+                "przewoźnicy: Complex Przewóz Osób"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "827302",
+            "cid": "55156",
+            "la": "50.061667",
+            "lo": "19.939167",
+            "sm": "true",
+            "iel": "false",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "s|827302"
+        },
+        {
+            "n": "Kraków, door-to-door",
+            "t": "DOOR2DOOR",
+            "c": "Kraków",
+            "a": [
+                "miasto Kraków",
+                "przewoźnicy: EuroBusik"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "691480",
+            "cid": "55156",
+            "la": "50.061667",
+            "lo": "19.939167",
+            "sm": "true",
+            "iel": "false",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "s|691480"
+        },
+        {
+            "n": "Krakowska",
+            "t": "STREET",
+            "c": "M. Poznań",
+            "a": [
+                "miasto Poznań, pow. m. Poznań, gm. M. Poznań"
+            ],
+            "cai": "miasto Poznań, pow. m. Poznań, gm. M. Poznań",
+            "id": "250238",
+            "cid": "71136",
+            "la": "52.400368",
+            "lo": "16.932128",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "st|250238"
+        },
+        {
+            "n": "Krakowska",
+            "t": "STREET",
+            "c": "M. Łódź",
+            "a": [
+                "miasto Łódź, pow. m. Łódź, gm. M. Łódź"
+            ],
+            "cai": "miasto Łódź, pow. m. Łódź, gm. M. Łódź",
+            "id": "254066",
+            "cid": "72471",
+            "la": "51.76824",
+            "lo": "19.402507",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "st|254066"
+        },
+        {
+            "n": "Krakusa",
+            "t": "STREET",
+            "c": "M. Łódź",
+            "a": [
+                "miasto Łódź, pow. m. Łódź, gm. M. Łódź"
+            ],
+            "cai": "miasto Łódź, pow. m. Łódź, gm. M. Łódź",
+            "id": "254067",
+            "cid": "72471",
+            "la": "51.7314",
+            "lo": "19.459408",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "st|254067"
+        },
+        {
+            "n": "Al. Kasy Oszczędności M. Krakowa",
+            "t": "STREET",
+            "c": "M. Kraków",
+            "a": [
+                "miasto Kraków, pow. m. Kraków, gm. M. Kraków"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "235227",
+            "cid": "55156",
+            "la": "50.059006",
+            "lo": "19.857093",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "st|235227"
+        },
+        {
+            "n": "Armii \"Kraków\"",
+            "t": "STREET",
+            "c": "M. Kraków",
+            "a": [
+                "miasto Kraków, pow. m. Kraków, gm. M. Kraków"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "234455",
+            "cid": "55156",
+            "la": "50.002218",
+            "lo": "19.925794",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "st|234455"
+        },
+        {
+            "n": "Harcerzy Krakowskich",
+            "t": "STREET",
+            "c": "M. Kraków",
+            "a": [
+                "miasto Kraków, pow. m. Kraków, gm. M. Kraków"
+            ],
+            "cai": "miasto Kraków, pow. m. Kraków, gm. M. Kraków",
+            "id": "235037",
+            "cid": "55156",
+            "la": "49.998018",
+            "lo": "19.990095",
+            "sm": "true",
+            "iel": "true",
+            "d": "false",
+            "ag": "false",
+            "placeDataString": "st|235037"
+        }
+    ]
+}

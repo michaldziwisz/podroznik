@@ -1,0 +1,50 @@
+name: testy
+
+# Po co: parsery żyją z kształtu cudzego HTML-a, a reguły kursowania z polszczyzny
+# przewoźników. Bez uruchamiania testów przy każdej zmianie regresja w tych
+# miejscach nie wywala strony, tylko cicho ukrywa albo dokłada kurs.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  testy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ustaw PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          # Ta sama wersja co na produkcji (tyflo: PHP 8.3).
+          php-version: '8.3'
+          extensions: curl, mbstring, dom, xml
+          coverage: none
+
+      - name: Sprawdź składnię wszystkich plików PHP
+        run: |
+          set -e
+          find src public scripts tests -name '*.php' -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: Sprawdź składnię skryptów powłoki
+        run: |
+          set -e
+          for plik in scripts/monitoring/*.sh tests/*.sh; do
+            [ -f "$plik" ] || continue
+            bash -n "$plik"
+          done
+
+      - name: Testy
+        run: php tests/run.php
+
+      # Testy nie mogą się okazać atrapą: psujemy kod produkcyjny w kilku
+      # miejscach i wymagamy, żeby każde uszkodzenie zostało wykryte.
+      - name: Kontrola ważności testów
+        run: bash tests/kontrola_waznosci.sh
+
+      - name: Testy domykania zgłoszeń monitoringu
+        run: bash scripts/monitoring/test_issue_close.sh

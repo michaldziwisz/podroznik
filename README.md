@@ -12,6 +12,47 @@ php -S 127.0.0.1:8080 -t public public/index.php
 
 Otwórz `http://127.0.0.1:8080/`.
 
+## Testy
+
+```bash
+php tests/run.php
+```
+
+Bez composera i bez PHPUnita — projekt nie ma zależności zewnętrznych, więc
+testy mają własny, minimalny biegacz (`tests/Biegacz.php`). Kod wyjścia 0 tylko
+wtedy, gdy wszystkie pliki przeszły **i** wykonała się co najmniej jedna
+asercja; zielono bez liczby asercji znaczyłoby „nic nie biegło”.
+
+Zakres:
+
+- `tests/test_input.php` — normalizacja daty i godziny wpisanej przez człowieka.
+- `tests/test_timetable_rules.php` — filtrowanie odjazdów po oknie godzinowym
+  i po tym, czy kurs jedzie danego dnia (dni tygodnia, zakresy dat, miesiące
+  rzymskie, święta stałe i ruchome, wyłączenia „nie kursuje”).
+- `tests/test_parsers.php` — `TimetableParser` i `ResultsParser` na utrwalonych
+  odpowiedziach serwisu.
+
+Parsery testujemy na próbkach z dysku, nie na żywym e‑podroznik.pl: test
+odpytujący serwis byłby wolny i padałby przy każdej jego awarii, czyli mówiłby
+o czymś innym niż o naszym kodzie. Próbki odświeża:
+
+```bash
+php scripts/dev/collect_fixtures.php
+```
+
+Każdy przypadek pozytywny ma parę negatywną — test, który przechodzi także na
+zepsutym kodzie, jest gorszy niż jego brak. Sprawdza to:
+
+```bash
+bash tests/kontrola_waznosci.sh
+```
+
+Skrypt psuje kod produkcyjny w ośmiu miejscach, każde osobno (granice okna
+godzinowego, święta ruchome, koniec zakresu dat, zawijanie zakresu dni przez
+niedzielę, kolejność adnotacji w parserze, wykrywanie odnośników, sprawdzanie
+daty z kalendarzem, dopuszczalna godzina) i wymaga, żeby każde zostało
+wykryte. Po każdej próbie przywraca pliki.
+
 ## Uwagi
 
 - To nie jest oficjalny produkt e‑podróżnik.pl i może przestać działać, jeśli zmienią endpointy lub format HTML.
