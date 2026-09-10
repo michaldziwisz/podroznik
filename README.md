@@ -53,6 +53,24 @@ niedzielę, kolejność adnotacji w parserze, wykrywanie odnośników, sprawdzan
 daty z kalendarzem, dopuszczalna godzina) i wymaga, żeby każde zostało
 wykryte. Po każdej próbie przywraca pliki.
 
+### Higiena próbek
+
+Repozytorium jest publiczne, a odpowiedzi `e-podroznik.pl` niosą **cudze klucze
+usług** (np. klucz Google Maps w adresie skryptu) i **identyfikatory sesji**
+(`tabToken`, `vTok`, `jsessionid`) osoby, która próbkę zebrała. Dlatego
+`collect_fixtures.php`:
+
+- wycina w całości `<script>`, `<style>` i `<noscript>` — parsery czytają samą
+  strukturę dokumentu, więc nic nie tracą (sprawdzone pomiarem na tej samej
+  odpowiedzi upstreamu: identyczne wyniki przed i po),
+- podmienia tokeny na zastępniki o tym samym kształcie, we wszystkich
+  składniach, w jakich występują,
+- **odmawia** (kod wyjścia 1), jeśli w gotowej próbce zostanie klucz, token albo
+  znacznik `script`.
+
+To samo sprawdza grupa asercji „Higiena próbek” w `tests/test_parsers.php`, więc
+nie zależy od czyjejś czujności przy zbieraniu.
+
 ## Uwagi
 
 - To nie jest oficjalny produkt e‑podróżnik.pl i może przestać działać, jeśli zmienią endpointy lub format HTML.
