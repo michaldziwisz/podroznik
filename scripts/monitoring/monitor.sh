@@ -4,14 +4,31 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 CHECK="${ROOT_DIR}/scripts/monitoring/check_upstream.php"
 REPORT="${ROOT_DIR}/scripts/monitoring/report_to_sygnalista.php"
+CLOSER="${ROOT_DIR}/scripts/monitoring/issue_close.sh"
 LOCK_FILE="/tmp/podroznik-monitor.lock"
-PENDING_FILE="/tmp/podroznik-monitor.pending"
-STATE_FILE="/tmp/podroznik-monitor.state"
-LOG_FILE="${PODROZNIK_MONITOR_LOG:-/home/ubuntu/podroznik-monitor.log}"
 
 TITLE="Monitoring: problem z integracją e‑podroznik.pl"
 
 HOME_DIR="${HOME:-/home/ubuntu}"
+
+# Stan trzymamy POZA /tmp: numer założonego issue musi przeżyć restart maszyny,
+# inaczej po powrocie do sprawności nie wiemy, co zamknąć. Katalog /tmp bywa
+# czyszczony przy starcie systemu i przez systemd-tmpfiles.
+STATE_DIR="${PODROZNIK_MONITOR_STATE_DIR:-${HOME_DIR}/.local/state/podroznik}"
+mkdir -p "$STATE_DIR"
+PENDING_FILE="${STATE_DIR}/monitor.pending"
+STATE_FILE="${STATE_DIR}/monitor.state"
+
+# Zgodność ze starym układem: gdy stan leży jeszcze w /tmp, przenieś go, żeby
+# trwająca awaria nie zgubiła numeru issue w chwili wdrożenia tej zmiany.
+for legacy_pair in "/tmp/podroznik-monitor.pending:$PENDING_FILE" "/tmp/podroznik-monitor.state:$STATE_FILE"; do
+  legacy_src="${legacy_pair%%:*}"
+  legacy_dst="${legacy_pair##*:}"
+  if [[ -f "$legacy_src" && ! -f "$legacy_dst" ]]; then
+    mv -f "$legacy_src" "$legacy_dst" 2>/dev/null || true
+  fi
+done
+LOG_FILE="${PODROZNIK_MONITOR_LOG:-/home/ubuntu/podroznik-monitor.log}"
 ENV_FILE="${PODROZNIK_MONITOR_ENV_FILE:-${HOME_DIR}/.config/podroznik/monitor.env}"
 if [[ -f "$ENV_FILE" ]]; then
   set -a
@@ -40,9 +57,22 @@ set -e
 
 if [[ $status -eq 0 ]]; then
   if [[ -f "$STATE_FILE" ]]; then
+    # Druga połowa pętli: skoro monitoring sam zgłosił awarię, sam ją domyka.
+    # Bez tego lista otwartych issues mówi „kiedyś coś się zepsuło”, a nie
+    # „coś jest zepsute teraz”.
+    close_out=""
+    if [[ -x "$CLOSER" ]]; then
+      set +e
+      close_out="$("$CLOSER" --state-file "$STATE_FILE" --title "$TITLE" \
+        --reason "Monitoring: powrót do sprawności o ${timestamp}. Sprawdzenie upstreamu (podpowiedzi, wyszukiwanie, rozkład) kończy się wynikiem OK, więc zamykam zgłoszenie automatycznie." 2>&1)"
+      set -e
+    else
+      close_out="SKIP (brak wykonywalnego $CLOSER)"
+    fi
     {
       echo "[$timestamp] RECOVERED"
       cat "$STATE_FILE" 2>/dev/null || true
+      echo "close: $close_out"
       echo
     } >>"$LOG_FILE"
     rm -f "$STATE_FILE" || true
